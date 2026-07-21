@@ -1,0 +1,96 @@
+"""Stage 1 結構測試：驗證 SQLAlchemy Model 定義是否符合 Database Design v2.1。
+
+這些測試只讀取 `Base.metadata`（純 Python 物件），不需要連線到真正的 PostgreSQL，
+因此可以在尚未設定資料庫的環境下執行。
+"""
+
+from app.models import Base
+
+EXPECTED_TABLES = {
+    "app_user",
+    "group_leader_application",
+    "group_leader_profile",
+    "activity",
+    "product",
+    "product_image",
+    "character",
+    "product_character",
+    "group_buy",
+    "group_buy_product",
+    "follow_list",
+    "follow_list_item",
+    "group_order",
+    "order_item",
+    "cancellation_request",
+    "product_favorite",
+    "announcement",
+    "notification",
+}
+
+
+def test_all_18_tables_registered():
+    assert set(Base.metadata.tables.keys()) == EXPECTED_TABLES
+    assert len(EXPECTED_TABLES) == 18
+
+
+def test_app_user_contact_columns_nullable_and_required_by_check_constraint():
+    table = Base.metadata.tables["app_user"]
+    for column_name in ("facebook_contact", "discord_contact", "line_contact"):
+        assert table.columns[column_name].nullable is True
+
+    check_names = {
+        constraint.name
+        for constraint in table.constraints
+        if constraint.__class__.__name__ == "CheckConstraint"
+    }
+    assert "ck_app_user_contact_required" in check_names
+
+
+def test_product_official_price_and_currency_extension_columns_exist():
+    table = Base.metadata.tables["product"]
+    assert "official_price" in table.columns
+    assert "official_currency" in table.columns
+    assert table.columns["official_price"].nullable is True
+    assert table.columns["official_currency"].nullable is True
+
+
+def test_activity_category_extension_column_is_free_text_and_nullable():
+    table = Base.metadata.tables["activity"]
+    category_column = table.columns["category"]
+    assert category_column.nullable is True
+    # 依衝突解法 #1：category 為自由文字（String），不是固定 Enum。
+    assert category_column.type.__class__.__name__ == "String"
+
+
+def test_group_order_has_required_snapshot_columns():
+    table = Base.metadata.tables["group_order"]
+    snapshot_columns = {
+        "group_leader_name_snapshot",
+        "activity_name_snapshot",
+        "payment_method_snapshot",
+        "rules_snapshot",
+        "leader_contact_platform_snapshot",
+        "leader_contact_value_snapshot",
+        "member_facebook_contact_snapshot",
+        "member_discord_contact_snapshot",
+        "member_line_contact_snapshot",
+    }
+    assert snapshot_columns.issubset(set(table.columns.keys()))
+
+
+def test_unique_constraints_exist_for_pending_style_business_rules():
+    order_item_table = Base.metadata.tables["order_item"]
+    unique_names = {
+        constraint.name
+        for constraint in order_item_table.constraints
+        if constraint.__class__.__name__ == "UniqueConstraint"
+    }
+    assert "uq_order_item_order_product" in unique_names
+
+    favorite_table = Base.metadata.tables["product_favorite"]
+    unique_names = {
+        constraint.name
+        for constraint in favorite_table.constraints
+        if constraint.__class__.__name__ == "UniqueConstraint"
+    }
+    assert "uq_product_favorite_user_product" in unique_names
