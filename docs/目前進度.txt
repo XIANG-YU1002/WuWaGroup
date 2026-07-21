@@ -1,0 +1,73 @@
+WuWaGroup 專案進度紀錄
+記錄時間：2026-07-21
+
+====================================
+目前狀態：第 1 階段已完成並實測驗證通過
+====================================
+
+【已完成項目】
+
+1. 需求追蹤矩陣
+   - docs/00_Requirements_Traceability_Matrix.md
+   - 列出頁面/API/資料表/Business Rule 對應關係
+   - 記錄 4 項文件衝突與使用者決議：
+     衝突1：活動分類 -> 採用 Project Spec，新增 activity.category（自由文字，非固定 Enum）
+     衝突2：官方價格多幣別 -> 採用 Project Spec，新增 product.official_currency（TWD/CNY/JPY）
+     衝突3：管理員會員列表/詳情 -> 採用 Project Spec，待 Stage 5 設計 API
+     衝突4：管理員團主列表/詳情 -> 採用 Project Spec，待 Stage 5 設計 API
+
+2. 專案骨架
+   - backend/（FastAPI + SQLAlchemy + Alembic）
+   - frontend/（React + Vite，純骨架佔位頁）
+   - docs/（7 份規格文件 + 需求追蹤矩陣 + 測試結果）
+   - README.md、.gitignore
+
+3. 資料庫（Database Design v2.1 對應，18 張表 + 2 個擴充欄位）
+   - backend/app/models/ 下 18 張資料表的 SQLAlchemy Model
+   - backend/app/models/enums.py：11 個規格 Enum + 1 個擴充 Enum(Currency)
+   - backend/alembic/versions/0001_initial_schema.py：完整建表/Enum/Constraint/Index
+
+4. 開發環境（已在本機實際安裝，非模擬）
+   - Python 3.12.10（透過 winget 安裝）
+   - Node.js v24.18.0 / npm 11.16.0（透過 winget 安裝）
+   - backend/venv 已建立，requirements.txt 套件已安裝完成
+
+5. Supabase 資料庫連線（已實測成功）
+   - 專案：kjziqgiqiwknxqejancr（region: ap-south-1）
+   - 連線方式：Session pooler
+   - 正確連線字串格式：
+     postgresql+psycopg://postgres.kjziqgiqiwknxqejancr:<密碼>@aws-1-ap-south-1.pooler.supabase.com:5432/postgres
+   - 已寫入 backend/.env（已列入 .gitignore，不會提交）
+   - 注意：Direct connection（db.xxx.supabase.co）因 IPv6 問題連不上，務必使用 pooler
+
+6. 實際測試結果（docs/測試結果.md 有完整記錄）
+   - pytest：7/7 全數通過
+   - alembic upgrade head：對 Supabase 實際執行成功
+   - 資料庫驗證：19 張表（18 張規格表+alembic_version）、12 個自訂 Enum、
+     97 個 Constraint、69 個 Index，皆與 Database Design v2.1 一致
+
+====================================
+下一步：第 2 階段 - 登入、會員和公開 API
+====================================
+
+依照原訂 8 階段計畫，接下來要做的是：
+
+【第 2 階段內容】
+- 建立 Pydantic Schema（Request/Response）
+- 認證 API：POST /auth/register、POST /auth/login、GET /auth/me
+- 會員 API：GET /users/me、PATCH /users/me、PATCH /users/me/contacts
+- 團主申請 API：POST /group-leader-applications、GET /group-leader-applications/me
+- 公開搜尋 API：GET /search、/search/activities、/search/products、/search/characters
+- 公開活動 API：GET /activities、GET /activities/{id}、GET /activities/{id}/products
+- 公開商品 API：GET /products/{id}、GET /products/{id}/group-buys
+- 公開開團 API：GET /group-buys/{id}、/rules、/announcements
+- 公開團主 API：GET /group-leaders/{id}、/group-buys、/announcements
+- 圖片上傳 API：POST /uploads/images
+- JWT 簽發與驗證機制（密碼雜湊、Token 產生/解析）
+
+對應文件：05_API_Design_v2.1 第 9~17、21 章節、06_Business_Rules 相關章節
+
+【需要使用者確認/提供的事】
+- 目前尚未有，等 Stage 2 開發過程若遇到規格模糊處會再詢問
+
+準備好後回覆即可繼續進行第 2 階段。
