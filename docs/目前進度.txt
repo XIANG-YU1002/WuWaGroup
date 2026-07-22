@@ -71,3 +71,109 @@ WuWaGroup 專案進度紀錄
 - 目前尚未有，等 Stage 2 開發過程若遇到規格模糊處會再詢問
 
 準備好後回覆即可繼續進行第 2 階段。
+
+====================================
+第 2 階段：登入、會員和公開 API － 已完成並實測驗證通過
+====================================
+記錄時間：2026-07-22
+
+【測試資料庫決策（使用者決議 2026-07-22）】
+07_Testing_and_Acceptance_Plan_v1.0 §5 要求 API 整合測試使用「專用測試資料庫」，
+但本機沒有 PostgreSQL／Docker。已詢問使用者，決議：
+直接使用現有 Supabase 專案作為測試資料庫，直到專案完成為止。
+為避免測試資料寫入正式資料庫，backend/tests/conftest.py 改為：
+每個測試在一個 DB Connection 的 Transaction 內執行（SQLAlchemy 2.0
+`join_transaction_mode="create_savepoint"`），測試中的所有 commit 只影響 SAVEPOINT，
+測試結束後整個 Transaction rollback，實測確認 Supabase 各資料表測試後皆為 0 筆殘留。
+
+【已完成項目】
+1. 核心基礎設施
+   - app/core/security.py：bcrypt 密碼雜湊、JWT 簽發／解析（8 小時效期）
+   - app/core/errors.py：統一錯誤格式（AppError + 全域 Exception Handler）
+   - app/core/responses.py：統一成功回應／分頁格式
+   - app/api/deps.py：get_current_user／get_current_user_optional／PaginationParams
+   - 修正 requirements.txt：passlib 1.7.4 與新版 bcrypt(5.x) 不相容，改釘選 bcrypt==4.0.1
+
+2. 已完成 API（依 05_API_Design_v2.1 §8-15、21）
+   - 認證：POST /auth/register、POST /auth/login、GET /auth/me
+   - 會員：GET/PATCH /users/me、PATCH /users/me/contacts
+   - 團主申請：POST/GET /group-leader-applications(/me)
+   - 公開搜尋：GET /search、/search/activities、/search/products、/search/characters
+   - 公開活動：GET /activities、/{id}、/{id}/products
+   - 公開商品：GET /products/{id}、/{id}/group-buys（含排序、篩選、可用數量計算）
+   - 公開開團：GET /group-buys/{id}、/rules、/announcements、
+     GET /group-buy-products/{id}/availability
+   - 公開團主：GET /group-leaders/{id}、/{id}/group-buys、/{id}/announcements
+   - 圖片上傳：POST /uploads/images（格式/大小/權限驗證、轉存 WebP、UUID 檔名）
+
+3. 分層架構：app/repositories（DB 查詢）、app/services（商業邏輯／交易）、
+   app/schemas（Pydantic）、app/api/v1（路由，僅負責轉換與呼叫 service）
+
+4. 測試：新增 6 個測試檔（test_auth_api、test_users_api、
+   test_group_leader_application_api、test_public_content_api、test_upload_api、
+   tests/factories.py 測試資料工廠），總計 59 個測試全數通過。
+
+【尚未完成／待確認事項】
+- 圖片上傳僅實作單張上傳與 WebP 轉檔，尚未實作 Business Rules §13.3 的「使用者自訂裁切」
+  （屬前端裁切 UI，將於 Stage 6/7 處理；後端目前接受前端裁切後的圖片直接轉檔）。
+- 公開開團 API 的 effective_status／available_quantity 計算邏輯（含團體層級聚合規則）
+  依 §16.7/§16.8/§20 精神實作，但文件未給出多商品開團在整體 effective_status 上
+  「全部商品皆無庫存」以外情境的明確聚合公式，屬合理推論，非逐字規格，Stage 3
+  實作訂單邏輯時如發現不一致需再確認。
+- Alembic downgrade() 仍未實際跑過（同第 1 階段遺留事項）。
+
+下一步：第 3 階段 - 建立訂單與交易邏輯（依 05_API_Design_v2.1 §16-20 建立規則、
+06_Business_Rules §15-22）。
+
+====================================
+第 3 階段：訂單與交易邏輯 － 已完成並實測驗證通過
+====================================
+記錄時間：2026-07-22
+
+【範圍補充說明】
+需求追蹤矩陣 §4「開發階段對應」表原本沒有把「收藏」（模組 3.9）與「通知 API」
+（模組 3.10 的會員端 GET/mark-read 部分）明確分配到任何一個階段（這是矩陣本身的
+遺漏，不是規格文件間的衝突）。因為：
+- 收藏功能與跟團清單同屬「會員個人清單管理」，且不依賴任何其他階段的 API；
+- 訂單狀態變更（接受／拒絕／核准取消）會建立系統通知，若不同時提供會員讀取
+  通知的 API，這些通知將無法被驗證與使用；
+故將這兩者一併納入第 3 階段實作範圍，屬於補齊矩陣缺口，不是新增文件未規劃的功能。
+
+【已完成項目（依 06_Business_Rules §18-23、30；05_API_Design_v2.1 §16-20、24、33）】
+1. 收藏 API：GET /favorites/products、POST/DELETE /favorites/products/{id}
+2. 跟團清單 API：GET/DELETE /follow-list、POST /follow-list/items、
+   PATCH/DELETE /follow-list/items/{id}（含同開團加量、跨開團替換確認、
+   可用數量即時計算與 is_submittable/invalid_reasons）
+3. 會員訂單 API：
+   - POST /orders：依 §33.2 鎖定跟團清單、開團、開團商品（依 UUID 排序），
+     鎖定後重新驗證數量與開團可用性，全有全無建立訂單與快照，成功後清空跟團清單
+   - GET /orders、GET /orders/{id}（含歷史快照、取消申請歷史，非本人訂單回傳 404）
+4. 取消申請 API：POST /orders/{id}/cancellation-requests（會員提出，狀態限制、
+   同時最多一筆待處理）
+5. 團主訂單 API：GET /group-leader/orders(/{id})、
+   accept／reject／mark-paid／mark-shipped／complete（依狀態機逐一驗證，
+   拒絕原因必填，狀態衝突回傳 409 並附目前狀態）
+6. 團主取消申請處理 API：approve／reject（核准時原子更新訂單為 cancelled 並
+   建立會員通知，拒絕時訂單狀態維持原狀）
+7. 通知 API：GET /notifications、/unread-count、PATCH .../read、.../read-all
+   （依來源類型計算 target_url，重複標記已讀不覆蓋原 read_at）
+8. 新增團主身份驗證依賴：get_current_group_leader_profile／
+   get_current_active_group_leader_profile（後者要求公開資料已完成，
+   供管理開團／訂單／公告等操作使用）
+
+【測試】新增 6 個測試檔（test_favorite_api、test_follow_list_api、test_order_api、
+test_group_leader_order_api、test_notification_api，共新增 41 個測試案例），
+加上第 1、2 階段既有測試，全專案總計 **100 個測試全數通過**。已再次確認測試後
+Supabase 全部相關資料表（含 group_order、order_item、cancellation_request、
+notification、follow_list 等）皆為 0 筆殘留。
+
+【尚未完成／待確認事項】
+- 團主訂單列表的 keyword／has_pending_cancellation 等篩選僅做基本查詢，未針對
+  大量資料做效能優化（符合第一版「可完成、可測試」原則，非文件遺漏）。
+- 通知 API 中「團主公告」「團主申請結果」來源的 target_url 計算已依 §26.5
+  預先實作，但實際建立這兩種通知的功能（團主公告發布、團主申請審核）在
+  Stage 4／5 才會完成，屆時需重新對照實際資料驗證一次。
+- Alembic downgrade() 仍未實際跑過（沿用第 1 階段的既有待辦）。
+
+下一步：第 4 階段 - 建立團主後台 API（團主資料設定、開團 CRUD、團主公告，
+依 05_API_Design_v2.1 §22-23、25、06_Business_Rules §9、15-17、24 建立規則）。

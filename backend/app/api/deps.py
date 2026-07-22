@@ -1,0 +1,93 @@
+from fastapi import Depends, Query
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.core.errors import AppError
+from app.core.security import TokenExpiredError, TokenInvalidError, decode_access_token
+from app.models.group_leader import GroupLeaderProfile
+from app.models.user import AppUser
+from app.repositories import group_leader_repository
+from app.services.group_leader_service import is_profile_complete
+
+__all__ = [
+    "get_db",
+    "get_current_user",
+    "get_current_user_optional",
+    "get_current_group_leader_profile",
+    "get_current_active_group_leader_profile",
+    "PaginationParams",
+]
+
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    db: Session = Depends(get_db),
+) -> AppUser:
+    """依 Business Rules §31.1 / API Design §4.5：驗證 Token 簽章、到期時間及使用者存在。"""
+    if credentials is None:
+        raise AppError(401, "AUTH_TOKEN_MISSING", "請先登入。")
+
+    try:
+        user_id = decode_access_token(credentials.credentials)
+    except TokenExpiredError as exc:
+        raise AppError(401, "AUTH_TOKEN_EXPIRED", "登入已過期，請重新登入。") from exc
+    except TokenInvalidError as exc:
+        raise AppError(401, "AUTH_TOKEN_INVALID", "登入資訊無效，請重新登入。") from exc
+
+    user = db.get(AppUser, user_id)
+    if user is None:
+        raise AppError(401, "AUTH_TOKEN_INVALID", "登入資訊無效，請重新登入。")
+    return user
+
+
+def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    db: Session = Depends(get_db),
+) -> AppUser | None:
+    """公開 API 可選擇性辨識目前使用者（例如商品詳情的 is_favorited），Token 缺漏或無效時視為訪客。"""
+    if credentials is None:
+        return None
+    try:
+        user_id = decode_access_token(credentials.credentials)
+    except (TokenExpiredError, TokenInvalidError):
+        return None
+    return db.get(AppUser, user_id)
+
+
+def get_current_group_leader_profile(
+    current_user: AppUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> GroupLeaderProfile:
+    """依 API Design §4.6：需已擁有 group_leader_profile（資料不須已完成）。"""
+    profile = group_leader_repository.get_profile_by_user_id(db, current_user.id)
+    if profile is None:
+        raise AppError(404, "GROUP_LEADER_PROFILE_NOT_FOUND", "找不到團主資料。")
+    return profile
+
+
+def get_current_active_group_leader_profile(
+    profile: GroupLeaderProfile = Depends(get_current_group_leader_profile),
+) -> GroupLeaderProfile:
+    """依 API Design §4.6：管理開團、訂單及公告等操作，還需團主公開資料已完成。"""
+    if not is_profile_complete(profile):
+        raise AppError(403, "GROUP_LEADER_PROFILE_INCOMPLETE", "團主公開資料尚未完成。")
+    return profile
+
+
+class PaginationParams:
+    """統一分頁參數，依 API Design §7.1/§7.2：預設 page=1、page_size=20，上限 100。"""
+
+    def __init__(
+        self,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(20, ge=1, le=100),
+    ) -> None:
+        self.page = page
+        self.page_size = page_size
+
+    @property
+    def offset(self) -> int:
+        return (self.page - 1) * self.page_size

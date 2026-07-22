@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 480
     cors_allowed_origins: str = "http://localhost:5173"
     upload_directory: str = "./uploads"
+    max_upload_file_size_bytes: int = 10 * 1024 * 1024
 
     @property
     def cors_allowed_origins_list(self) -> list[str]:
