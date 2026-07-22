@@ -177,3 +177,53 @@ notification、follow_list 等）皆為 0 筆殘留。
 
 下一步：第 4 階段 - 建立團主後台 API（團主資料設定、開團 CRUD、團主公告，
 依 05_API_Design_v2.1 §22-23、25、06_Business_Rules §9、15-17、24 建立規則）。
+
+====================================
+第 4 階段：團主後台 API － 已完成並實測驗證通過
+====================================
+記錄時間：2026-07-22
+
+【需求追蹤矩陣修正】
+發現 00_Requirements_Traceability_Matrix.md §4 開發階段對應表原本把「團主申請」
+（模組 3.2）列在 Stage 4，但該功能實際上已在 Stage 2 完成並測試（矩陣本身內部
+不一致，非文件間衝突）。已修正矩陣表格：3.2 移回 Stage 2，並補上原本沒有明確
+分配的 3.9（收藏）、3.13（圖片上傳，Stage 2 完成）、3.10 會員通知讀取部分
+（Stage 3 完成），使矩陣與實際完成進度一致。
+
+【已完成項目（依 06_Business_Rules §9、15、16、24；05_API_Design_v2.1 §22、23、25）】
+1. 團主資料 API：GET/PATCH /group-leader/profile、PATCH /group-leader/profile/default-rules
+   （名稱設定後不可修改、名稱唯一性檢查、聯絡方式至少保留一項）
+2. 團主 Dashboard API：GET /group-leader/dashboard（進行中開團、待確認訂單、
+   待付款訂單、待處理取消申請四張統計卡片）
+3. 團主開團 CRUD API：
+   - GET/POST /group-leader/group-buys（建立時完整驗證活動狀態、商品歸屬與上架、
+     滿贈設定、付款方式說明配對、截止時間，任一步失敗不建立部分資料）
+   - GET/PATCH /group-leader/group-buys/{id}（無正式訂單可改全部欄位；
+     有正式訂單後僅可改截止時間／聯絡方式，其餘回傳 GROUP_BUY_FIELDS_FROZEN）
+   - POST/PATCH/DELETE .../products(/{id})（新增與移除限無正式訂單、
+     售價有訂單後凍結、接單上限不可低於已占用數量、至少保留一項商品）
+   - POST .../close（結單後第一版不可重新開啟）
+4. 團主公告 API：GET/POST /group-leader/announcements、GET/PATCH/DELETE .../{id}
+   （團主整體公告／特定開團公告兩種範圍、未完成訂單收件人計算與去重、
+   零收件人時僅公開公告允許發布、修改同步更新既有通知內容但不重建通知、
+   刪除公告時通知一併由 FK CASCADE 移除）
+5. 擴充 app/api/deps.py：get_current_active_group_leader_profile 供上述所有
+   管理性操作使用（要求團主公開資料已完成）
+
+【測試】新增 4 個測試檔（test_group_leader_profile_api、
+test_group_leader_group_buy_api、test_group_leader_announcement_api，
+共新增 37 個測試案例），加上第 1-3 階段既有測試，全專案總計
+**137 個測試全數通過**。已再次確認測試後 Supabase 全部資料表（含
+group_buy、group_buy_product、announcement 等）皆為 0 筆殘留。
+
+【尚未完成／待確認事項】
+- 團主開團列表/詳情目前未實作依關鍵字搜尋活動名稱等進階篩選（文件也未要求，
+  非遺漏）。
+- 公告的 target_url／通知內容在 Stage 5（管理員 API，含平台公告）完成後，
+  應與平台公告的通知情境一併再驗證一次跨模組互動。
+- Alembic downgrade() 仍未實際跑過（沿用第 1 階段的既有待辦）。
+
+下一步：第 5 階段 - 建立管理員 API（審核團主申請、活動/商品管理、角色維護、
+平台公告管理、管理員 Dashboard，及需求追蹤矩陣衝突解法 #3/#4 的會員／團主
+唯讀管理擴充），依 05_API_Design_v2.1 §26-31、06_Business_Rules §25、27
+建立規則。

@@ -5,8 +5,10 @@ from sqlalchemy.orm import Session
 
 from app.models.activity import Activity
 from app.models.enums import GroupBuyStatus, PaymentMethod
+from app.models.follow_list import FollowListItem
 from app.models.group_buy import GroupBuy, GroupBuyProduct
 from app.models.group_leader import GroupLeaderProfile
+from app.models.order import GroupOrder
 from app.models.product import Product
 
 
@@ -84,3 +86,89 @@ def count_group_buys_by_group_leader(db: Session, group_leader_profile_id: uuid.
         GroupBuy.group_leader_profile_id == group_leader_profile_id
     )
     return db.execute(stmt).scalar_one()
+
+
+def list_by_group_leader_paginated(
+    db: Session,
+    group_leader_profile_id: uuid.UUID,
+    status: GroupBuyStatus | None,
+    page: int,
+    page_size: int,
+) -> tuple[list[GroupBuy], int]:
+    stmt = select(GroupBuy).where(GroupBuy.group_leader_profile_id == group_leader_profile_id)
+    if status is not None:
+        stmt = stmt.where(GroupBuy.status == status)
+
+    total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
+    items = (
+        db.execute(
+            stmt.order_by(GroupBuy.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        .scalars()
+        .all()
+    )
+    return items, total
+
+
+def count_by_group_leader_and_status(
+    db: Session, group_leader_profile_id: uuid.UUID, status: GroupBuyStatus
+) -> int:
+    stmt = (
+        select(func.count())
+        .select_from(GroupBuy)
+        .where(
+            GroupBuy.group_leader_profile_id == group_leader_profile_id,
+            GroupBuy.status == status,
+        )
+    )
+    return db.execute(stmt).scalar_one()
+
+
+def count_formal_orders(db: Session, group_buy_id: uuid.UUID) -> int:
+    """依 Business Rules §16.1：只要存在任何 group_order 紀錄就視為已有正式訂單。"""
+    stmt = select(func.count()).select_from(GroupOrder).where(GroupOrder.group_buy_id == group_buy_id)
+    return db.execute(stmt).scalar_one()
+
+
+def create_group_buy(db: Session, **fields) -> GroupBuy:
+    group_buy = GroupBuy(**fields)
+    db.add(group_buy)
+    db.flush()
+    return group_buy
+
+
+def create_group_buy_product(db: Session, **fields) -> GroupBuyProduct:
+    group_buy_product = GroupBuyProduct(**fields)
+    db.add(group_buy_product)
+    db.flush()
+    return group_buy_product
+
+
+def count_products_in_group_buy(db: Session, group_buy_id: uuid.UUID) -> int:
+    stmt = (
+        select(func.count())
+        .select_from(GroupBuyProduct)
+        .where(GroupBuyProduct.group_buy_id == group_buy_id)
+    )
+    return db.execute(stmt).scalar_one()
+
+
+def product_exists_in_group_buy(db: Session, group_buy_id: uuid.UUID, product_id: uuid.UUID) -> bool:
+    stmt = select(GroupBuyProduct.id).where(
+        GroupBuyProduct.group_buy_id == group_buy_id, GroupBuyProduct.product_id == product_id
+    )
+    return db.execute(stmt).scalar_one_or_none() is not None
+
+
+def delete_group_buy_product(db: Session, group_buy_product: GroupBuyProduct) -> None:
+    db.delete(group_buy_product)
+    db.flush()
+
+
+def has_follow_list_items_for_product(db: Session, group_buy_product_id: uuid.UUID) -> bool:
+    stmt = select(FollowListItem.id).where(
+        FollowListItem.group_buy_product_id == group_buy_product_id
+    )
+    return db.execute(stmt).scalar_one_or_none() is not None

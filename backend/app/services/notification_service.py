@@ -25,6 +25,22 @@ def notify_order_event(
     return notification
 
 
+def notify_announcement_recipients(
+    db: Session, *, user_ids: list[uuid.UUID], announcement_id: uuid.UUID, title: str, message: str
+) -> None:
+    """依 Business Rules §24.4：同一會員同一公告只建立一則通知（呼叫端需先去重 user_ids）。"""
+    for user_id in user_ids:
+        db.add(
+            Notification(
+                user_id=user_id,
+                notification_type=NotificationType.GROUP_LEADER,
+                title=title,
+                message=message,
+                announcement_id=announcement_id,
+            )
+        )
+
+
 def _source_and_target_url(db: Session, notification: Notification) -> tuple[NotificationSource, str | None]:
     """依 Business Rules §26.5：依通知來源決定導向頁面。"""
     if notification.order_id is not None:

@@ -1,10 +1,11 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.enums import CancellationStatus
-from app.models.order import CancellationRequest
+from app.models.group_buy import GroupBuy
+from app.models.order import CancellationRequest, GroupOrder
 
 
 def get_by_id(
@@ -39,3 +40,17 @@ def create(db: Session, order_id: uuid.UUID, reason: str | None) -> Cancellation
     db.commit()
     db.refresh(request)
     return request
+
+
+def count_pending_for_leader(db: Session, group_leader_profile_id: uuid.UUID) -> int:
+    stmt = (
+        select(func.count())
+        .select_from(CancellationRequest)
+        .join(GroupOrder, GroupOrder.id == CancellationRequest.order_id)
+        .join(GroupBuy, GroupBuy.id == GroupOrder.group_buy_id)
+        .where(
+            GroupBuy.group_leader_profile_id == group_leader_profile_id,
+            CancellationRequest.status == CancellationStatus.PENDING,
+        )
+    )
+    return db.execute(stmt).scalar_one()

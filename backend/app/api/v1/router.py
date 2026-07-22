@@ -6,8 +6,11 @@ from app.api.v1 import (
     favorites,
     follow_list,
     group_buys,
+    group_leader_announcements,
     group_leader_applications,
+    group_leader_group_buys,
     group_leader_orders,
+    group_leader_profile,
     group_leaders,
     notifications,
     orders,
@@ -31,4 +34,7 @@ api_router.include_router(favorites.router)
 api_router.include_router(follow_list.router)
 api_router.include_router(orders.router)
 api_router.include_router(group_leader_orders.router)
+api_router.include_router(group_leader_group_buys.router)
+api_router.include_router(group_leader_profile.router)
+api_router.include_router(group_leader_announcements.router)
 api_router.include_router(notifications.router)

@@ -87,6 +87,21 @@ def list_by_user(
     return items, total
 
 
+def count_for_leader_by_status(
+    db: Session, group_leader_profile_id: uuid.UUID, status: OrderStatus
+) -> int:
+    stmt = (
+        select(func.count())
+        .select_from(GroupOrder)
+        .join(GroupBuy, GroupBuy.id == GroupOrder.group_buy_id)
+        .where(
+            GroupBuy.group_leader_profile_id == group_leader_profile_id,
+            GroupOrder.status == status,
+        )
+    )
+    return db.execute(stmt).scalar_one()
+
+
 def get_group_buy_for_update(db: Session, group_buy_id: uuid.UUID) -> GroupBuy | None:
     stmt = select(GroupBuy).where(GroupBuy.id == group_buy_id).with_for_update()
     return db.execute(stmt).scalar_one_or_none()
