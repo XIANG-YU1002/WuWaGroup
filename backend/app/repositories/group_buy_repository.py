@@ -1,10 +1,11 @@
 import uuid
+from datetime import datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.activity import Activity
-from app.models.enums import GroupBuyStatus, PaymentMethod
+from app.models.enums import ActivityStatus, GroupBuyStatus, PaymentMethod
 from app.models.follow_list import FollowListItem
 from app.models.group_buy import GroupBuy, GroupBuyProduct
 from app.models.group_leader import GroupLeaderProfile
@@ -172,3 +173,38 @@ def has_follow_list_items_for_product(db: Session, group_buy_product_id: uuid.UU
         FollowListItem.group_buy_product_id == group_buy_product_id
     )
     return db.execute(stmt).scalar_one_or_none() is not None
+
+
+def _current_group_buys_base_stmt():
+    return (
+        select(GroupBuy, Activity, GroupLeaderProfile)
+        .join(Activity, Activity.id == GroupBuy.activity_id)
+        .join(GroupLeaderProfile, GroupLeaderProfile.id == GroupBuy.group_leader_profile_id)
+        .where(
+            GroupBuy.status == GroupBuyStatus.OPEN,
+            GroupBuy.deadline_at > datetime.now(timezone.utc),
+            Activity.status == ActivityStatus.OPEN,
+        )
+    )
+
+
+def count_current_group_buys(db: Session) -> int:
+    """依 API Design §26.2：目前開團需同時符合 open／deadline 未到／活動 open。"""
+    stmt = _current_group_buys_base_stmt()
+    return db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
+
+
+def list_current_group_buys(
+    db: Session, page: int, page_size: int
+) -> tuple[list[tuple[GroupBuy, Activity, GroupLeaderProfile]], int]:
+    stmt = _current_group_buys_base_stmt()
+    total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
+    rows = db.execute(
+        stmt.order_by(GroupBuy.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    ).all()
+    return [(row[0], row[1], row[2]) for row in rows], total
+
+
+def count_orders_for_group_buy(db: Session, group_buy_id: uuid.UUID) -> int:
+    stmt = select(func.count()).select_from(GroupOrder).where(GroupOrder.group_buy_id == group_buy_id)
+    return db.execute(stmt).scalar_one()

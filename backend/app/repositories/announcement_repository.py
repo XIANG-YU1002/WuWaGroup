@@ -31,6 +31,26 @@ def get_by_id(db: Session, announcement_id: uuid.UUID) -> Announcement | None:
     return db.get(Announcement, announcement_id)
 
 
+def list_platform_announcements(
+    db: Session, *, keyword: str | None, page: int, page_size: int
+) -> tuple[list[Announcement], int]:
+    stmt = select(Announcement).where(Announcement.announcement_type == AnnouncementType.PLATFORM)
+    if keyword:
+        stmt = stmt.where(Announcement.title.ilike(f"%{keyword}%"))
+
+    total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
+    items = (
+        db.execute(
+            stmt.order_by(Announcement.published_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        .scalars()
+        .all()
+    )
+    return items, total
+
+
 def create(db: Session, **fields) -> Announcement:
     announcement = Announcement(**fields)
     db.add(announcement)

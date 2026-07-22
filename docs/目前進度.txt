@@ -227,3 +227,56 @@ group_buy、group_buy_product、announcement 等）皆為 0 筆殘留。
 平台公告管理、管理員 Dashboard，及需求追蹤矩陣衝突解法 #3/#4 的會員／團主
 唯讀管理擴充），依 05_API_Design_v2.1 §26-31、06_Business_Rules §25、27
 建立規則。
+
+====================================
+第 5 階段：管理員 API － 已完成並實測驗證通過
+====================================
+記錄時間：2026-07-22
+
+【範圍補充說明】
+矩陣模組 3.2（團主申請）只包含會員端申請/查詢，管理員審核（approve/reject）
+未明確歸類到任何階段編號；因其屬於 Business Rules §27.2／§5.4 明定的管理員權限，
+且與本階段其他管理員功能高度相關，一併納入 Stage 5 實作範圍。
+
+【已完成項目（依 06_Business_Rules §10-12、25、27；05_API_Design_v2.1 §26-31）】
+1. 管理員身份驗證依賴：get_current_admin_user（app_user.role = admin）
+2. 管理員活動 API：GET/POST /admin/activities、GET/PATCH .../{id}、
+   POST .../end、POST .../reopen（含 product_count／group_buy_count 統計）
+3. 管理員商品 API：GET/POST /admin/products、GET/PATCH .../{id}、
+   POST .../deactivate、.../reactivate、額外圖片 CRUD 與重新排序
+   （採「先移到暫用區間再寫入最終順序」避免違反排序唯一限制）
+4. 管理員角色維護 API：GET .../suggestions、POST/PATCH/DELETE /admin/characters
+   （商品建立/更新可同時指定既有角色 id 或 new_name 新增，並自動比對大小寫
+   不敏感重複名稱避免建立重複角色）
+5. 管理員團主申請審核 API：GET /admin/group-leader-applications(/{id})、
+   POST .../approve、.../reject（核准時同一 Transaction 建立不完整團主資料
+   並通知申請人，拒絕後會員可再次申請）
+6. 平台公告 API：GET/POST /admin/announcements、GET/PATCH/DELETE .../{id}
+   （通知所有已註冊會員、修改同步通知內容、刪除通知隨公告 FK CASCADE 移除）
+7. 管理員 Dashboard API：GET /admin/dashboard（4 張統計卡片）、
+   GET .../current-group-buys（open 且未過期且活動 open 的唯讀清單）
+8. 會員／團主唯讀管理擴充（需求追蹤矩陣衝突解法 #3、#4，Project Spec 擴充）：
+   GET /admin/users(/{id})、GET /admin/group-leaders(/{id})
+
+【測試】新增 7 個測試檔（test_admin_activity_api、test_admin_character_api、
+test_admin_product_api、test_admin_group_leader_application_api、
+test_admin_announcement_api、test_admin_dashboard_api、
+test_admin_readonly_management_api，共新增 37 個測試案例），加上第 1-4 階段
+既有測試，全專案總計 **174 個測試全數通過**。已再次確認測試後 Supabase
+全部資料表皆為 0 筆殘留。
+
+【尚未完成／待確認事項】
+- 第一版管理員角色維護沒有獨立分頁列表頁（文件明定不需要，非遺漏）。
+- Alembic downgrade() 仍未實際跑過（沿用第 1 階段的既有待辦）。
+
+【後端 API 完成度】
+第 2～5 階段（登入會員/公開 API、訂單交易、團主後台、管理員 API）已全數完成，
+174 個測試涵蓋所有角色（Visitor/Member/Group Leader/Admin）與主要業務流程。
+下一步進入第 6 階段（React 共用版型與公開頁），前端將開始實際串接這些已驗證
+的後端 API。
+
+下一步：第 6 階段 - 建立 React 共用版型與公開頁（Layout、Header、首頁、
+活動/商品/開團/搜尋/團主公開頁），依 03_UI_Wireframe_Specification_v2.1、
+02_User_Flow_v2.1 建立畫面，並參考 圖片預覽畫面/ 的排版與配色（圖片中含有
+商品/活動實際圖片的部分先留白，待你之後提供素材上傳；文件與圖片衝突時以
+文件為準）。

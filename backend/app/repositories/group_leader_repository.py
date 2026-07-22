@@ -3,10 +3,11 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.enums import OrderStatus
+from app.models.enums import GroupLeaderApplicationStatus, OrderStatus
 from app.models.group_buy import GroupBuy
 from app.models.group_leader import GroupLeaderApplication, GroupLeaderProfile
 from app.models.order import GroupOrder
+from app.models.user import AppUser
 
 
 def get_profile_by_user_id(db: Session, user_id: uuid.UUID) -> GroupLeaderProfile | None:
@@ -70,3 +71,78 @@ def get_public_statistics(db: Session, group_leader_profile_id: uuid.UUID) -> di
     ).scalar_one()
 
     return {"group_buy_count": group_buy_count, "completed_order_count": completed_order_count}
+
+
+def get_application_by_id(db: Session, application_id: uuid.UUID) -> GroupLeaderApplication | None:
+    return db.get(GroupLeaderApplication, application_id)
+
+
+def count_pending_applications(db: Session) -> int:
+    stmt = (
+        select(func.count())
+        .select_from(GroupLeaderApplication)
+        .where(GroupLeaderApplication.status == GroupLeaderApplicationStatus.PENDING)
+    )
+    return db.execute(stmt).scalar_one()
+
+
+def list_applications_admin(
+    db: Session,
+    *,
+    status: GroupLeaderApplicationStatus | None,
+    keyword: str | None,
+    page: int,
+    page_size: int,
+) -> tuple[list[GroupLeaderApplication], int]:
+    """依 Business Rules §27.2：待審核申請依較早申請優先顯示（created_at ASC）。"""
+    stmt = select(GroupLeaderApplication)
+    if status is not None:
+        stmt = stmt.where(GroupLeaderApplication.status == status)
+    if keyword:
+        stmt = stmt.join(AppUser, AppUser.id == GroupLeaderApplication.user_id).where(
+            AppUser.nickname.ilike(f"%{keyword}%") | AppUser.email.ilike(f"%{keyword}%")
+        )
+
+    total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
+    order_column = (
+        GroupLeaderApplication.created_at.asc()
+        if status == GroupLeaderApplicationStatus.PENDING
+        else GroupLeaderApplication.created_at.desc()
+    )
+    items = (
+        db.execute(stmt.order_by(order_column).offset((page - 1) * page_size).limit(page_size))
+        .scalars()
+        .all()
+    )
+    return items, total
+
+
+def create_profile(db: Session, user_id: uuid.UUID) -> GroupLeaderProfile:
+    profile = GroupLeaderProfile(user_id=user_id)
+    db.add(profile)
+    db.flush()
+    return profile
+
+
+def list_profiles_admin(
+    db: Session, *, keyword: str | None, page: int, page_size: int
+) -> tuple[list[tuple[GroupLeaderProfile, AppUser]], int]:
+    """依需求追蹤矩陣衝突解法 #4：Project Spec 擴充的唯讀團主列表。"""
+    stmt = select(GroupLeaderProfile, AppUser).join(AppUser, AppUser.id == GroupLeaderProfile.user_id)
+    if keyword:
+        stmt = stmt.where(
+            GroupLeaderProfile.display_name.ilike(f"%{keyword}%")
+            | AppUser.nickname.ilike(f"%{keyword}%")
+            | AppUser.email.ilike(f"%{keyword}%")
+        )
+
+    total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
+    rows = (
+        db.execute(
+            stmt.order_by(GroupLeaderProfile.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        .all()
+    )
+    return [(row[0], row[1]) for row in rows], total

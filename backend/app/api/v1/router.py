@@ -2,6 +2,14 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     activities,
+    admin_activities,
+    admin_announcements,
+    admin_characters,
+    admin_dashboard,
+    admin_group_leader_applications,
+    admin_group_leaders,
+    admin_products,
+    admin_users,
     auth,
     favorites,
     follow_list,
@@ -38,3 +46,11 @@ api_router.include_router(group_leader_group_buys.router)
 api_router.include_router(group_leader_profile.router)
 api_router.include_router(group_leader_announcements.router)
 api_router.include_router(notifications.router)
+api_router.include_router(admin_activities.router)
+api_router.include_router(admin_characters.router)
+api_router.include_router(admin_products.router)
+api_router.include_router(admin_group_leader_applications.router)
+api_router.include_router(admin_announcements.router)
+api_router.include_router(admin_dashboard.router)
+api_router.include_router(admin_users.router)
+api_router.include_router(admin_group_leaders.router)

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.errors import AppError
 from app.core.security import TokenExpiredError, TokenInvalidError, decode_access_token
+from app.models.enums import UserRole
 from app.models.group_leader import GroupLeaderProfile
 from app.models.user import AppUser
 from app.repositories import group_leader_repository
@@ -16,6 +17,7 @@ __all__ = [
     "get_current_user_optional",
     "get_current_group_leader_profile",
     "get_current_active_group_leader_profile",
+    "get_current_admin_user",
     "PaginationParams",
 ]
 
@@ -75,6 +77,13 @@ def get_current_active_group_leader_profile(
     if not is_profile_complete(profile):
         raise AppError(403, "GROUP_LEADER_PROFILE_INCOMPLETE", "團主公開資料尚未完成。")
     return profile
+
+
+def get_current_admin_user(current_user: AppUser = Depends(get_current_user)) -> AppUser:
+    """依 API Design §4.7：所有 /admin/* API 需 app_user.role = admin。"""
+    if current_user.role != UserRole.ADMIN:
+        raise AppError(403, "PERMISSION_DENIED", "沒有管理員權限。")
+    return current_user
 
 
 class PaginationParams:

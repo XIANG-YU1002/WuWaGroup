@@ -1,0 +1,206 @@
+from app.models.enums import UserRole
+from tests.factories import create_activity, create_character, create_product, create_user
+from tests.utils import auth_headers, login
+
+
+def _admin_headers(client, db_session):
+    admin = create_user(db_session, role=UserRole.ADMIN)
+    return auth_headers(login(client, admin.email, "Passw0rd1"))
+
+
+def test_create_product_with_existing_and_new_character(client, db_session):
+    headers = _admin_headers(client, db_session)
+    activity = create_activity(db_session)
+    existing_character = create_character(db_session, name="今汐")
+
+    response = client.post(
+        "/api/v1/admin/products",
+        json={
+            "activity_id": str(activity.id),
+            "name": "壓克力立牌",
+            "official_price": "390.00",
+            "primary_image_url": "/uploads/product/p.webp",
+            "characters": [{"id": str(existing_character.id)}, {"new_name": "長離"}],
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    data = response.json()["data"]
+    assert data["official_price"] == "390.00"
+    names = {c["name"] for c in data["characters"]}
+    assert names == {"今汐", "長離"}
+
+
+def test_create_product_duplicate_name_in_activity(client, db_session):
+    headers = _admin_headers(client, db_session)
+    activity = create_activity(db_session)
+    create_product(db_session, activity=activity, name="壓克力立牌")
+
+    response = client.post(
+        "/api/v1/admin/products",
+        json={
+            "activity_id": str(activity.id),
+            "name": "壓克力立牌",
+            "primary_image_url": "/uploads/product/p.webp",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "CONFLICT"
+
+
+def test_create_product_new_character_reuses_existing_case_insensitive(client, db_session):
+    headers = _admin_headers(client, db_session)
+    activity = create_activity(db_session)
+    create_character(db_session, name="今汐")
+
+    response = client.post(
+        "/api/v1/admin/products",
+        json={
+            "activity_id": str(activity.id),
+            "name": "商品A",
+            "primary_image_url": "/uploads/product/p.webp",
+            "characters": [{"new_name": "今汐"}],
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert len(response.json()["data"]["characters"]) == 1
+
+    # only one character named 今汐 should exist afterward
+    suggestions = client.get(
+        "/api/v1/admin/characters/suggestions", params={"q": "今汐"}, headers=headers
+    ).json()["data"]
+    assert len(suggestions) == 1
+    assert suggestions[0]["related_product_count"] == 1
+
+
+def test_deactivate_and_reactivate_product(client, db_session):
+    headers = _admin_headers(client, db_session)
+    product = create_product(db_session)
+
+    deactivate_response = client.post(
+        f"/api/v1/admin/products/{product.id}/deactivate", headers=headers
+    )
+    assert deactivate_response.status_code == 200
+    assert deactivate_response.json()["data"]["is_active"] is False
+
+    repeat_response = client.post(
+        f"/api/v1/admin/products/{product.id}/deactivate", headers=headers
+    )
+    assert repeat_response.status_code == 409
+    assert repeat_response.json()["error"]["code"] == "PRODUCT_ALREADY_INACTIVE"
+
+    reactivate_response = client.post(
+        f"/api/v1/admin/products/{product.id}/reactivate", headers=headers
+    )
+    assert reactivate_response.status_code == 200
+    assert reactivate_response.json()["data"]["is_active"] is True
+
+
+def test_update_product_replaces_characters(client, db_session):
+    headers = _admin_headers(client, db_session)
+    product = create_product(db_session)
+    old_character = create_character(db_session, name="舊角色")
+    from tests.factories import link_product_character
+
+    link_product_character(db_session, product, old_character)
+
+    response = client.patch(
+        f"/api/v1/admin/products/{product.id}",
+        json={"characters": [{"new_name": "新角色"}]},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    names = {c["name"] for c in response.json()["data"]["characters"]}
+    assert names == {"新角色"}
+
+
+def test_update_product_omitting_characters_keeps_existing(client, db_session):
+    headers = _admin_headers(client, db_session)
+    product = create_product(db_session)
+    character = create_character(db_session, name="保留角色")
+    from tests.factories import link_product_character
+
+    link_product_character(db_session, product, character)
+
+    response = client.patch(
+        f"/api/v1/admin/products/{product.id}", json={"name": "改名商品"}, headers=headers
+    )
+    assert response.status_code == 200
+    assert response.json()["data"]["name"] == "改名商品"
+    assert [c["name"] for c in response.json()["data"]["characters"]] == ["保留角色"]
+
+
+def test_add_update_delete_and_reorder_images(client, db_session):
+    headers = _admin_headers(client, db_session)
+    product = create_product(db_session)
+
+    add1 = client.post(
+        f"/api/v1/admin/products/{product.id}/images",
+        json={"image_url": "/uploads/product/1.webp"},
+        headers=headers,
+    )
+    add2 = client.post(
+        f"/api/v1/admin/products/{product.id}/images",
+        json={"image_url": "/uploads/product/2.webp"},
+        headers=headers,
+    )
+    assert add1.status_code == 201
+    assert add2.status_code == 201
+    images = add2.json()["data"]["images"]
+    assert [img["sort_order"] for img in images] == [0, 1]
+    image1_id, image2_id = images[0]["id"], images[1]["id"]
+
+    update_response = client.patch(
+        f"/api/v1/admin/products/{product.id}/images/{image1_id}",
+        json={"image_url": "/uploads/product/1-updated.webp"},
+        headers=headers,
+    )
+    assert update_response.status_code == 200
+    updated_image = next(
+        i for i in update_response.json()["data"]["images"] if i["id"] == image1_id
+    )
+    assert updated_image["image_url"] == "/uploads/product/1-updated.webp"
+
+    reorder_response = client.patch(
+        f"/api/v1/admin/products/{product.id}/images/reorder",
+        json={"ordered_image_ids": [image2_id, image1_id]},
+        headers=headers,
+    )
+    assert reorder_response.status_code == 200
+    reordered = reorder_response.json()["data"]["images"]
+    assert reordered[0]["id"] == image2_id
+    assert reordered[0]["sort_order"] == 0
+    assert reordered[1]["id"] == image1_id
+    assert reordered[1]["sort_order"] == 1
+
+    delete_response = client.delete(
+        f"/api/v1/admin/products/{product.id}/images/{image1_id}", headers=headers
+    )
+    assert delete_response.status_code == 200
+    assert len(delete_response.json()["data"]["images"]) == 1
+
+
+def test_reorder_images_incomplete_list_rejected(client, db_session):
+    headers = _admin_headers(client, db_session)
+    product = create_product(db_session)
+    add_response = client.post(
+        f"/api/v1/admin/products/{product.id}/images",
+        json={"image_url": "/uploads/product/1.webp"},
+        headers=headers,
+    )
+    client.post(
+        f"/api/v1/admin/products/{product.id}/images",
+        json={"image_url": "/uploads/product/2.webp"},
+        headers=headers,
+    )
+    image1_id = add_response.json()["data"]["images"][0]["id"]
+
+    response = client.patch(
+        f"/api/v1/admin/products/{product.id}/images/reorder",
+        json={"ordered_image_ids": [image1_id]},
+        headers=headers,
+    )
+    assert response.status_code == 422
