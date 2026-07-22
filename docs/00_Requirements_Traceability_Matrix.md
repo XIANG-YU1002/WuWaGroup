@@ -12,8 +12,9 @@
 | 2 | Project Spec 官方價格支援多幣別（CNY/JPY/TWD），Business Rules/DB/API 規定官方價格固定 TWD | 依使用者決議採用 Project Spec：`product.official_price` 保留，新增 `product.official_currency` Enum（TWD/CNY/JPY），兩者同為 NULL 或同時有值；**團主售價 `group_buy_product.unit_price` 仍固定 TWD**（各文件一致，無衝突） |
 | 3 | Project Spec 要求管理員可查看會員列表／詳情，Business Rules/API 明定第一版不提供 | 依使用者決議採用 Project Spec：於 Stage 5（管理員 API）新增只讀的會員列表／詳情端點，不在既有 API Design 文件編號內，將於該階段補充設計並標註為「Project Spec 擴充」 |
 | 4 | Project Spec 要求管理員可查看團主列表／詳情／統計，Business Rules/API 明定第一版不提供 | 同上，於 Stage 5 新增只讀的團主列表／詳情端點，標註為「Project Spec 擴充」 |
+| 5 | UI Wireframe／User Flow 首頁畫了「活動分類篩選」下拉選單，但 API Design 的 `GET /activities` 沒有 `category` 查詢參數，回應也不含 `category`（管理員活動 API 建立/修改亦未包含此欄位，Stage 5 已依 API Design 原樣完成） | 依使用者決議（2026-07-22）：**移除**首頁活動分類下拉選單，Stage 6 不實作。`activity.category` 欄位保留在資料庫（供未來擴充），但目前無任何 API 讀寫，UI 亦不顯示相關篩選 |
 
-以上四項為只讀擴充，不影響訂單、金流、權限核心規則，且不違反「不得加入文件未規劃的功能」的精神（因為使用者已對這 4 項衝突做出明確裁示，視為需求的一部分）。
+以上五項中，#1-#4 為只讀/欄位擴充，#5 為移除 UI Wireframe/User Flow 描述但 API Design 未支援的功能，皆不影響訂單、金流、權限核心規則，且不違反「不得加入文件未規劃的功能」的精神（使用者已對這些衝突做出明確裁示，視為需求的一部分）。
 
 ---
 

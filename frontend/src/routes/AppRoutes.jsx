@@ -1,20 +1,29 @@
-import { Routes, Route } from "react-router-dom";
-
-// 第一版頁面尚未建立（Stage 1 僅建立專案骨架與開發環境）。
-// 之後各階段會依 03_UI_Wireframe_Specification 的 Route Overview 補上實際頁面。
-function SkeletonPlaceholder() {
-  return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>WuWaGroup</h1>
-      <p>專案骨架已建立，頁面將於後續階段實作。</p>
-    </main>
-  );
-}
+import { Route, Routes } from "react-router-dom";
+import MainLayout from "../layouts/MainLayout.jsx";
+import HomePage from "../pages/HomePage.jsx";
+import SearchPage from "../pages/SearchPage.jsx";
+import ActivityDetailPage from "../pages/ActivityDetailPage.jsx";
+import ProductDetailPage from "../pages/ProductDetailPage.jsx";
+import GroupBuyDetailPage from "../pages/GroupBuyDetailPage.jsx";
+import GroupLeaderProfilePage from "../pages/GroupLeaderProfilePage.jsx";
+import LoginPage from "../pages/LoginPage.jsx";
+import RegisterPage from "../pages/RegisterPage.jsx";
+import NotFoundPage from "../pages/NotFoundPage.jsx";
 
 export default function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<SkeletonPlaceholder />} />
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/activities/:activityId" element={<ActivityDetailPage />} />
+        <Route path="/products/:productId" element={<ProductDetailPage />} />
+        <Route path="/group-buys/:groupBuyId" element={<GroupBuyDetailPage />} />
+        <Route path="/group-leaders/:groupLeaderId" element={<GroupLeaderProfilePage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
     </Routes>
   );
 }
