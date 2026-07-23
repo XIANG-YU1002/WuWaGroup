@@ -54,14 +54,6 @@ def test_product_official_price_and_currency_extension_columns_exist():
     assert table.columns["official_currency"].nullable is True
 
 
-def test_activity_category_extension_column_is_free_text_and_nullable():
-    table = Base.metadata.tables["activity"]
-    category_column = table.columns["category"]
-    assert category_column.nullable is True
-    # 依衝突解法 #1：category 為自由文字（String），不是固定 Enum。
-    assert category_column.type.__class__.__name__ == "String"
-
-
 def test_group_order_has_required_snapshot_columns():
     table = Base.metadata.tables["group_order"]
     snapshot_columns = {

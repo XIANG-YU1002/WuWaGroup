@@ -24,8 +24,12 @@ export default function LoginPage() {
     setError("");
     setSubmitting(true);
     try {
-      await login(email, password);
-      navigate(redirectPath, { replace: true });
+      const sessionUser = await login(email, password);
+      if (sessionUser?.permissions?.is_admin) {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate(redirectPath, { replace: true });
+      }
     } catch (err) {
       if (err instanceof ApiError && err.code === "AUTH_INVALID_CREDENTIALS") {
         setError("Email 或密碼錯誤。");

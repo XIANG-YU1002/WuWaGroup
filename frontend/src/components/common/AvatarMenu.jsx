@@ -25,6 +25,7 @@ export default function AvatarMenu() {
   }
 
   const initial = user.nickname?.[0]?.toUpperCase() ?? "?";
+  const isAdmin = user.permissions?.is_admin ?? false;
 
   return (
     <div className="avatar-menu" ref={containerRef}>
@@ -46,26 +47,39 @@ export default function AvatarMenu() {
       </button>
       {open && (
         <div className="avatar-menu-dropdown" role="menu">
-          <Link to="/profile" role="menuitem" onClick={() => setOpen(false)}>
-            個人資料
-          </Link>
-          <Link to="/orders" role="menuitem" onClick={() => setOpen(false)}>
-            我的訂單
-          </Link>
-          {!user.group_leader && (
-            <Link to="/group-leader-application" role="menuitem" onClick={() => setOpen(false)}>
-              申請成為團主
-            </Link>
-          )}
-          {user.group_leader && (
-            <Link to="/group-leader" role="menuitem" onClick={() => setOpen(false)}>
-              團主後台
-            </Link>
-          )}
-          {user.permissions?.is_admin && (
+          {isAdmin ? (
             <Link to="/admin" role="menuitem" onClick={() => setOpen(false)}>
               管理員後台
             </Link>
+          ) : (
+            <>
+              <Link to="/profile" role="menuitem" onClick={() => setOpen(false)}>
+                個人資料
+              </Link>
+              <Link to="/favorites" role="menuitem" onClick={() => setOpen(false)}>
+                收藏的商品
+              </Link>
+              <Link to="/follow-list" role="menuitem" onClick={() => setOpen(false)}>
+                跟團清單
+              </Link>
+              <Link to="/orders" role="menuitem" onClick={() => setOpen(false)}>
+                我的訂單
+              </Link>
+              {!user.group_leader && (
+                <Link
+                  to="/group-leader-application"
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                >
+                  申請成為團主
+                </Link>
+              )}
+              {user.group_leader && (
+                <Link to="/group-leader" role="menuitem" onClick={() => setOpen(false)}>
+                  團主後台
+                </Link>
+              )}
+            </>
           )}
           <button type="button" role="menuitem" onClick={handleLogout}>
             登出

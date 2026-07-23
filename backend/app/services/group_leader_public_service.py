@@ -30,6 +30,35 @@ def _load_complete_profile_or_404(db: Session, group_leader_profile_id: uuid.UUI
     return profile
 
 
+def list_public_profiles(
+    db: Session, *, keyword: str | None, page: int, page_size: int
+) -> tuple[list[PublicGroupLeaderProfileResponse], int]:
+    profiles, total = group_leader_repository.list_public_profiles(
+        db, keyword=keyword, page=page, page_size=page_size
+    )
+    items = []
+    for profile in profiles:
+        user = user_repository.get_by_id(db, profile.user_id)
+        statistics = group_leader_repository.get_public_statistics(db, profile.id)
+        items.append(
+            PublicGroupLeaderProfileResponse(
+                id=profile.id,
+                display_name=profile.display_name,
+                avatar_url=user.avatar_url if user is not None else None,
+                introduction=profile.introduction,
+                public_contacts=PublicContacts(
+                    facebook=profile.facebook_url,
+                    discord=profile.discord_contact,
+                    line=profile.line_contact,
+                ),
+                created_at=profile.created_at,
+                statistics=GroupLeaderStatistics(**statistics),
+                default_rules=profile.default_rules,
+            )
+        )
+    return items, total
+
+
 def get_public_profile(
     db: Session, group_leader_profile_id: uuid.UUID
 ) -> PublicGroupLeaderProfileResponse:

@@ -11,6 +11,20 @@ from app.services import group_leader_public_service
 router = APIRouter(prefix="/group-leaders", tags=["group-leaders"])
 
 
+@router.get("")
+def list_public_profiles(
+    keyword: str | None = Query(None),
+    pagination: PaginationParams = Depends(),
+    db: Session = Depends(get_db),
+) -> dict:
+    items, total = group_leader_public_service.list_public_profiles(
+        db, keyword=keyword, page=pagination.page, page_size=pagination.page_size
+    )
+    return paginated_envelope(
+        [i.model_dump(mode="json") for i in items], pagination.page, pagination.page_size, total
+    )
+
+
 @router.get("/{group_leader_id}")
 def get_public_profile(group_leader_id: uuid.UUID, db: Session = Depends(get_db)) -> dict:
     result = group_leader_public_service.get_public_profile(db, group_leader_id)

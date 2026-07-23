@@ -1,9 +1,11 @@
 """initial schema: 18 core tables + enums + constraints + indexes
 
 依據 04_Database_Design_v2.1 建立第一版完整資料庫結構，並包含需求追蹤矩陣
-（docs/00_Requirements_Traceability_Matrix.md）衝突解法 #1、#2 的兩個擴充欄位：
-- activity.category（自由文字，選填，非固定 Enum）
+（docs/00_Requirements_Traceability_Matrix.md）衝突解法 #2 的擴充欄位：
 - product.official_currency（TWD／CNY／JPY，選填，與 official_price 同進退）
+
+（衝突解法 #1 的 activity.category 擴充欄位已於 2026-07-23 撤回並移除，
+不在此結構內。）
 
 Revision ID: 0001_initial_schema
 Revises:
@@ -158,7 +160,7 @@ def upgrade() -> None:
     )
 
     # ------------------------------------------------------------------
-    # 5. activity（含擴充欄位 category，見衝突解法 #1）
+    # 5. activity
     # ------------------------------------------------------------------
     op.execute(
         """
@@ -169,7 +171,6 @@ def upgrade() -> None:
             image_url TEXT NOT NULL,
             status activity_status NOT NULL DEFAULT 'open',
             has_full_gift BOOLEAN NOT NULL DEFAULT false,
-            category VARCHAR(100),
             created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
             CONSTRAINT ck_activity_name_not_blank CHECK (length(trim(name)) > 0),

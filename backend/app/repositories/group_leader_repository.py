@@ -124,17 +124,13 @@ def create_profile(db: Session, user_id: uuid.UUID) -> GroupLeaderProfile:
     return profile
 
 
-def list_profiles_admin(
+def list_public_profiles(
     db: Session, *, keyword: str | None, page: int, page_size: int
-) -> tuple[list[tuple[GroupLeaderProfile, AppUser]], int]:
-    """依需求追蹤矩陣衝突解法 #4：Project Spec 擴充的唯讀團主列表。"""
-    stmt = select(GroupLeaderProfile, AppUser).join(AppUser, AppUser.id == GroupLeaderProfile.user_id)
+) -> tuple[list[GroupLeaderProfile], int]:
+    """公開團主列表：僅列出已完成公開資料（display_name 已設定）的團主。"""
+    stmt = select(GroupLeaderProfile).where(GroupLeaderProfile.display_name.is_not(None))
     if keyword:
-        stmt = stmt.where(
-            GroupLeaderProfile.display_name.ilike(f"%{keyword}%")
-            | AppUser.nickname.ilike(f"%{keyword}%")
-            | AppUser.email.ilike(f"%{keyword}%")
-        )
+        stmt = stmt.where(GroupLeaderProfile.display_name.ilike(f"%{keyword}%"))
 
     total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
     rows = (
@@ -143,6 +139,7 @@ def list_profiles_admin(
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
+        .scalars()
         .all()
     )
-    return [(row[0], row[1]) for row in rows], total
+    return list(rows), total

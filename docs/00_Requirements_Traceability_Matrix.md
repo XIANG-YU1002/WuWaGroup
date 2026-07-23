@@ -10,11 +10,12 @@
 |---|---|---|
 | 1 | Project Spec 提到「活動分類」篩選，但 Business Rules/DB Design 明定不使用固定分類 Enum | 依使用者決議採用 Project Spec：新增 `activity.category`，但實作為**自由文字欄位（VARCHAR，選填）**，不是固定 Enum，兼顧「動態活動」精神與 Project Spec 的分類篩選需求 |
 | 2 | Project Spec 官方價格支援多幣別（CNY/JPY/TWD），Business Rules/DB/API 規定官方價格固定 TWD | 依使用者決議採用 Project Spec：`product.official_price` 保留，新增 `product.official_currency` Enum（TWD/CNY/JPY），兩者同為 NULL 或同時有值；**團主售價 `group_buy_product.unit_price` 仍固定 TWD**（各文件一致，無衝突） |
-| 3 | Project Spec 要求管理員可查看會員列表／詳情，Business Rules/API 明定第一版不提供 | 依使用者決議採用 Project Spec：於 Stage 5（管理員 API）新增只讀的會員列表／詳情端點，不在既有 API Design 文件編號內，將於該階段補充設計並標註為「Project Spec 擴充」 |
-| 4 | Project Spec 要求管理員可查看團主列表／詳情／統計，Business Rules/API 明定第一版不提供 | 同上，於 Stage 5 新增只讀的團主列表／詳情端點，標註為「Project Spec 擴充」 |
+| 3 | ~~Project Spec 要求管理員可查看會員列表／詳情，Business Rules/API 明定第一版不提供~~ | **【2026-07-23 使用者撤回此決議】** Stage 5 曾依 Project Spec 新增只讀會員列表／詳情端點（`GET /admin/users(/{id})`），但使用者事後認定此為「未經充分確認就擴充規格外功能」，已於 2026-07-23 要求整支移除（API 路由、Service、Schema、Repository 查詢方法、對應測試皆已刪除，前端從未實作，無需異動）。**結論：第一版不提供此功能，與 Business Rules/API 原始規格一致。** |
+| 4 | ~~Project Spec 要求管理員可查看團主列表／詳情／統計，Business Rules/API 明定第一版不提供~~ | **【2026-07-23 使用者撤回此決議】** 同上，Stage 5 曾新增的唯讀團主列表／詳情端點（`GET /admin/group-leaders(/{id})`）已於 2026-07-23 整支移除。**結論：第一版不提供此功能。** |
 | 5 | UI Wireframe／User Flow 首頁畫了「活動分類篩選」下拉選單，但 API Design 的 `GET /activities` 沒有 `category` 查詢參數，回應也不含 `category`（管理員活動 API 建立/修改亦未包含此欄位，Stage 5 已依 API Design 原樣完成） | 依使用者決議（2026-07-22）：**移除**首頁活動分類下拉選單，Stage 6 不實作。`activity.category` 欄位保留在資料庫（供未來擴充），但目前無任何 API 讀寫，UI 亦不顯示相關篩選 |
 
-以上五項中，#1-#4 為只讀/欄位擴充，#5 為移除 UI Wireframe/User Flow 描述但 API Design 未支援的功能，皆不影響訂單、金流、權限核心規則，且不違反「不得加入文件未規劃的功能」的精神（使用者已對這些衝突做出明確裁示，視為需求的一部分）。
+**重要提醒（2026-07-23 新增）：** #3、#4 原本的解法已被撤回，見上方刪除線與說明——**日後若又看到 Project Spec／User Flow／UI Wireframe 提到「管理員可查看會員/團主列表」，一律視為不採用，不需要再重新詢問或重新實作**，這不是尚待處理事項，而是已經做過一次又被明確撤銷的功能。
+以上五項中，#1、#2 為欄位擴充（後端與前端皆有實際串接使用中，尚未被要求移除），#3、#4 已撤回恢復原始規格，#5 為移除 UI Wireframe/User Flow 描述但 API Design 未支援的功能。凡未被撤回的項目，皆不影響訂單、金流、權限核心規則，且是使用者已對這些衝突做出明確裁示的部分。
 
 ---
 
@@ -142,11 +143,9 @@
 - **API：** POST /uploads/images
 - **Business Rules：** §13
 
-### 3.14（擴充）Admin User / Group Leader Read-Only Management
-- **頁面：** /admin（會員列表/詳情、團主列表/詳情，若採 Project Spec 版本）
-- **API：** 待 Stage 5 設計（GET /admin/users, GET /admin/users/{id}, GET /admin/group-leaders, GET /admin/group-leaders/{id}）
-- **資料表：** app_user, group_leader_profile（唯讀）
-- **依據：** 衝突解法 #3、#4
+### 3.14（已撤回，不實作）~~Admin User / Group Leader Read-Only Management~~
+- **狀態：** Stage 5 曾實作 `GET /admin/users(/{id})`、`GET /admin/group-leaders(/{id})`，於 2026-07-23 使用者撤回並整支刪除（含 API、Service、Schema、Repository 方法、測試）。前端從未開始實作。
+- **結論：管理員後台第一版不提供會員/團主列表查看功能，與 Business Rules/API 原始規格一致。** 日後不需再新增。
 
 ---
 
@@ -158,7 +157,7 @@
 | 2 | 登入、會員、公開 API | §3.1, 3.2, 3.4, 3.5, 3.6(公開), 3.12, 3.13 |
 | 3 | 訂單與交易邏輯 | §3.7, 3.8, 3.9, 3.10(會員通知讀取) |
 | 4 | 團主後台 API | §3.3, 3.6(團主), 3.10(團主公告), 3.11(團主) |
-| 5 | 管理員 API | §3.4(管理), 3.5(管理), 3.10(平台公告), 3.11(管理員), 3.14(擴充) |
+| 5 | 管理員 API | §3.4(管理), 3.5(管理), 3.10(平台公告), 3.11(管理員)；3.14 已撤回不實作 |
 | 6 | React 共用版型與公開頁 | Layout, Header, 首頁, 活動/商品/開團/搜尋/團主公開頁 |
 | 7 | 會員/團主/管理員頁面 | 對應各後台頁面 |
 | 8 | 測試與修正 | Testing and Acceptance Plan v1.0 |

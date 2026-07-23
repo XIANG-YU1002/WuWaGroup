@@ -7,9 +7,7 @@ from app.api.v1 import (
     admin_characters,
     admin_dashboard,
     admin_group_leader_applications,
-    admin_group_leaders,
     admin_products,
-    admin_users,
     auth,
     favorites,
     follow_list,
@@ -52,5 +50,3 @@ api_router.include_router(admin_products.router)
 api_router.include_router(admin_group_leader_applications.router)
 api_router.include_router(admin_announcements.router)
 api_router.include_router(admin_dashboard.router)
-api_router.include_router(admin_users.router)
-api_router.include_router(admin_group_leaders.router)

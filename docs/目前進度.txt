@@ -257,6 +257,11 @@ group_buy、group_buy_product、announcement 等）皆為 0 筆殘留。
    GET .../current-group-buys（open 且未過期且活動 open 的唯讀清單）
 8. 會員／團主唯讀管理擴充（需求追蹤矩陣衝突解法 #3、#4，Project Spec 擴充）：
    GET /admin/users(/{id})、GET /admin/group-leaders(/{id})
+   【2026-07-23 已撤回】使用者認定此為未經充分確認的規格外擴充，已整支刪除
+   （API、Service、Schema、Repository 方法、對應測試 test_admin_readonly_
+   management_api.py 皆移除，前端從未實作）。管理員後台第一版不提供此功能，
+   回歸 Business Rules/API 原始規格。詳見 00_Requirements_Traceability_Matrix.md
+   衝突解法 #3、#4 的撤回註記。
 
 【測試】新增 7 個測試檔（test_admin_activity_api、test_admin_character_api、
 test_admin_product_api、test_admin_group_leader_application_api、
@@ -264,6 +269,7 @@ test_admin_announcement_api、test_admin_dashboard_api、
 test_admin_readonly_management_api，共新增 37 個測試案例），加上第 1-4 階段
 既有測試，全專案總計 **174 個測試全數通過**。已再次確認測試後 Supabase
 全部資料表皆為 0 筆殘留。
+（test_admin_readonly_management_api 一檔已隨 2026-07-23 撤回一併刪除。）
 
 【尚未完成／待確認事項】
 - 第一版管理員角色維護沒有獨立分頁列表頁（文件明定不需要，非遺漏）。
@@ -280,3 +286,180 @@ test_admin_readonly_management_api，共新增 37 個測試案例），加上第
 02_User_Flow_v2.1 建立畫面，並參考 圖片預覽畫面/ 的排版與配色（圖片中含有
 商品/活動實際圖片的部分先留白，待你之後提供素材上傳；文件與圖片衝突時以
 文件為準）。
+
+====================================
+第 6 階段：React 共用版型與公開頁 － 已完成，安裝與啟動驗證通過
+====================================
+記錄時間：2026-07-23（畫面程式碼於 2026-07-22 commit c156191 完成，
+本次記錄為安裝與啟動驗證）
+
+【已完成項目】
+1. API client 層：frontend/src/api/（client.js 統一 fetch 封裝與 token 附加、
+   auth.js、activities.js、products.js、groupBuys.js、groupLeaders.js、
+   favorites.js、followList.js、search.js、tokenStorage.js）
+2. 共用版型與元件：layouts/MainLayout.jsx、components/common/（Header、
+   AvatarMenu、Breadcrumb、Modal、ConfirmModal、Pagination、SearchInput、
+   StatusBadge、ImageLightbox、Alert、EmptyState、ErrorState、FormField、
+   PageLoader、Button 等）、context/AuthContext.jsx（登入狀態全域管理）
+3. 公開頁面：HomePage、ActivityDetailPage、ProductDetailPage（含
+   ProductGallery、FavoriteButton）、GroupBuyDetailPage、SearchPage、
+   GroupLeaderProfilePage（團主公開頁）、LoginPage、RegisterPage、
+   NotFoundPage，routes/AppRoutes.jsx 串接對應路由
+4. 樣式：styles/layout.css、styles/components.css、styles/global.css，
+   參考 圖片預覽畫面/ 排版與配色
+5. 額外新增 backend/scripts/seed_demo_data.py（demo 資料種子腳本，供前端
+   開發時填充測試資料）
+
+【安裝與啟動驗證（本次新做）】
+- frontend 未曾在本機安裝過（node_modules 為 .gitignore 排除，未還原）：
+  執行 npm install 成功安裝 66 個套件
+- 建立 frontend/.env（依 .env.example：VITE_API_BASE_URL=
+  http://localhost:8000/api/v1）
+- npm run build 成功（78 modules transformed，無編譯錯誤，產出 dist/）
+- npm run dev 啟動成功（Vite 5.4.21，http://localhost:5173），實測
+  curl 首頁 /、/search、/login 路由皆回應 HTTP 200
+
+【尚未完成／待確認事項】
+- 本次僅驗證「可建置、可啟動、路由可訪問」，尚未做前後端整合驗證：
+  backend/.env（Supabase 連線字串/密碼）與 backend/venv 同樣是 .gitignore
+  排除項目，本機環境目前未還原，需重新取得 Supabase 密碼並重建 venv 才能
+  啟動後端，屆時才能驗證頁面實際資料串接（API 呼叫、登入流程等）是否正確。
+- 本機無 Playwright/Chromium 等瀏覽器自動化工具，畫面實際渲染結果（React
+  是否正常掛載、有無 console 錯誤）尚待人工在瀏覽器開啟
+  http://localhost:5173 檢查，本次僅能確認 HTML shell 與路由回應正常。
+- 圖片預覽畫面中商品/活動實際圖片素材尚未提供，相關版位依規劃留白。
+
+下一步：第 7 階段 - 建立會員/團主/管理員頁面（依 03_UI_Wireframe_Specification_v2.1
+第 18、20、23-24、26-34、36-43 節：會員個人資料/跟團清單/訂單/收藏/通知、
+團主 Dashboard/開團管理/訂單管理/公告管理、管理員 Dashboard/活動/商品/角色/
+團主申請審核/會員與團主唯讀管理/平台公告）。建議在此之前先重建後端環境
+（backend/.env + venv，需使用者提供 Supabase 密碼）以便做第 2-6 階段的
+前後端整合驗證。
+
+====================================
+第 6 階段追加修正 － 前後端整合驗證通過後，依實測發現與使用者回饋調整
+====================================
+記錄時間：2026-07-23
+
+【背景】
+重建 backend/.env + venv 並實際啟動前後端後，依使用者實測回饋與畫面比對
+圖片預覽畫面/ 進行以下調整（皆為 Stage 6 既有頁面的行為/樣式修正，非新頁面）：
+
+【已完成項目】
+1. 管理員／一般帳號區隔（使用者直接提出的需求，非文件衝突延伸出的擴充；
+   僅為既有 GET /admin/dashboard 核心 API 加上前端路由權限判斷，未新增任何
+   後端 API 或資料存取範圍）：
+   - 新增 frontend/src/layouts/AdminLayout.jsx（僅 is_admin 可進入，未登入導向
+     /login，非管理員導向首頁）、frontend/src/pages/admin/AdminDashboardPage.jsx
+     （串接既有 GET /admin/dashboard，顯示 4 張統計卡片）、
+     frontend/src/api/admin.js，路由掛載於 /admin
+   - 管理員後台放「查看前台」入口，可自由瀏覽公開頁面；LoginPage 登入成功後
+     依 permissions.is_admin 導向 /admin，其餘帳號維持導向原目標頁
+   - AvatarMenu／Header 針對管理員帳號精簡：僅顯示「管理員後台」「登出」，
+     隱藏跟團清單/收藏/通知/個人資料/我的訂單/申請成為團主等會員自助入口
+   - 使用者說明「管理員第一版不需要停用功能」，故本次未在跟團清單/開團動作
+     加上管理員專屬停用邏輯（第一版無此需求，非遺漏）
+   - 團主帳號登入後 AvatarMenu 原本的判斷（!user.group_leader 才顯示申請
+     成為團主）經檢查與實測皆正確，非程式邏輯問題
+2. 全站搜尋調整：
+   - 移除活動搜尋（SearchPage 不再呼叫/顯示 /search/activities），修正原本
+     只帶 character_id 未帶 q 時，活動搜尋以空字關鍵字呼叫 API 導致 400 錯誤、
+     連帶讓整頁顯示「無法載入資料」錯誤區塊的問題；商品／角色搜尋改為各自
+     獨立的 loading/error 狀態，不再共用同一個全域錯誤旗標
+   - SearchInput 離開 /search 頁面時清空搜尋框文字（原本已有此邏輯，額外
+     補上留在 /search 頁面時搜尋框會同步顯示目前關鍵字）
+3. 商品詳情頁開團比較區改版為表格（frontend/src/components/group-buy/
+   GroupBuyCompareTable.jsx，取代原本的 GroupBuyCard.jsx），欄位比照
+   圖片預覽畫面/03_商品詳情頁.png；原本的「加入跟團清單」動作改為
+   「查看開團詳情」，導向開團詳情頁
+4. 開團詳情頁新增「加入跟團清單」面板（數量選擇、可用性顯示、同開團加量／
+   跨開團替換確認皆沿用原有 API 邏輯），因為加入跟團清單的實際動作已從
+   商品詳情頁移除，需在開團詳情頁提供對應入口，否則此功能將無法使用
+5. 團主公開頁（GroupLeaderProfilePage）依 圖片預覽畫面/19_團主公開頁.png
+   重新排版：頭像/名稱/統計/聯絡方式橫幅＋預設團規卡片並排、「目前開團」
+   改為逐商品卡片（額外呼叫各開團詳情取得商品圖片/名稱/售價後攤平呈現，
+   API 未提供「已參團數」欄位，故此欄位未實作，非遺漏）
+6. 帳號資料重置：清除 app_user 及其關聯的團主資料/申請/跟團清單/訂單/收藏/
+   公告/通知（保留 activity/product/character 目錄資料），重建 3 個帳號並
+   重新掛一筆開團於既有商品下（backend/scripts/seed_demo_data.py 已更新為
+   「重置並重建」腳本）：
+     一般會員：demo-member@example.com / Passw0rd1
+     團主：    demo-leader@example.com / Passw0rd1
+     管理員：  demo-admin@example.com / Passw0rd1
+
+【驗證方式】
+安裝 Playwright + Chromium，以無頭瀏覽器實際跑過：三個帳號登入導向、管理員
+精簡選單與查看前台、搜尋（含關鍵字搜尋與點選角色結果兩種情境）、商品詳情頁
+開團表格與「查看開團詳情」、開團詳情頁加入跟團清單面板、團主公開頁，全程
+檢查 console 無錯誤；測試腳本與 Playwright 套件為驗證用途，驗證後已移除，
+未留在專案相依套件中。
+
+【尚未完成／待確認事項】
+- 管理員後台目前僅有 Dashboard，團主申請審核/活動/商品/角色/平台公告管理
+  頁面仍待 Stage 7 建置（本次僅先做帳號導向與入口，未提前實作管理頁面）
+- 開團詳情頁尚未依 04_開團詳情與團規頁.png 做完整版面重排（僅新增加入跟團
+  清單面板，圖示/兩欄排版等視覺細節留待 Stage 7 一併處理，非規格遺漏）
+
+下一步：第 7 階段 - 建立會員/團主/管理員頁面（同上）。
+
+====================================
+第 7 階段：會員/團主/管理員頁面 － 分四批完成並實測驗證通過
+====================================
+記錄時間：2026-07-23
+
+【範圍與批次】
+Stage 7 依頁面性質分四批完成，每批完成後皆用 Playwright + Chromium 無頭瀏覽器
+實測過完整操作流程（非僅檢查頁面能否開啟），全程確認 console 無錯誤，測試工具
+驗證後即移除，未留在專案相依套件中。
+
+Batch 1（會員自助頁面）：個人資料與聯絡方式頁（含頭像上傳）、申請成為團主頁＋
+團主申請狀態頁（同一路由依申請狀態切換畫面）、我的收藏頁、通知中心頁（含
+Header 未讀數字）。新增 frontend/src/layouts/MemberLayout.jsx 共用側邊選單。
+
+Batch 2（會員交易流程）：跟團清單頁（含數量調整/刪除/清空）、確認訂單頁、
+會員訂單列表頁（狀態分頁籤）、會員訂單詳情頁（狀態時間軸）、取消訂單申請頁。
+過程中發現並修正一個版面 bug：跟團清單頁與確認訂單頁誤用了設計給「小圖＋
+說明文字」的 product-detail-header CSS class，導致商品表格被擠壓變形；已新增
+專用的 .checkout-layout／.two-col-section class 修正，並回頭修正了開團詳情頁
+同樣的問題。
+
+Batch 3（團主後台）：Dashboard（4 張統計卡片）、團主資料管理頁（含頭像上傳、
+公開名稱鎖定、預設團規）、我的開團列表頁、建立開團頁（選活動→勾選商品→
+設定單價/接單上限→開團設定）、開團管理與編輯頁（依 editable_fields 動態鎖定
+已有訂單後不可改的欄位）、訂單管理頁（狀態篩選＋關鍵字搜尋）、訂單詳情頁
+（依 available_actions 動態顯示接受/拒絕/標記付款/出貨/完成按鈕，含取消申請
+核准/拒絕）、公告管理頁（團主整體公告／特定開團公告）。新增
+frontend/src/layouts/GroupLeaderLayout.jsx（含團主公開資料未完成時導向資料頁）。
+
+Batch 4（管理員後台補完）：活動管理（列表＋新增/編輯＋結束/重新開啟）、商品
+管理（列表＋新增/編輯＋上架/下架，含角色搜尋/新增自動完成）、團主申請列表＋
+審核頁、平台公告管理頁。AdminLayout 補上側邊選單（儀表板/團主申請/活動管理/
+商品管理/平台公告），Dashboard 統計卡片改為可點擊連結。
+**不包含**已於 2026-07-23 撤回的會員/團主唯讀清單查看功能（見
+00_Requirements_Traceability_Matrix.md 衝突解法 #3、#4 撤回註記）。
+
+【Batch 3→4 之間的額外稽核與修正】
+依使用者要求，用兩個獨立 agent 分別稽核：(1) 需求追蹤矩陣所有「文件衝突後
+採用 Project Spec」的擴充項目是否有遺漏、(2) Batch 1-3 頁面是否確實符合
+Business Rules 各項規則。結果：
+- 額外撤回 activity.category 自由文字欄位（衝突解法 #1，完全未被任何 API/UI
+  使用，已從 model/migration/測試移除，並對 Supabase 執行 ALTER TABLE DROP
+  COLUMN 同步刪除）。product.official_currency（衝突解法 #2）因商品詳情頁
+  正在顯示使用中，使用者決議保留不撤回。
+- Business Rules 稽核發現 1 個真實漏洞：開團編輯頁付款方式改為「其他」時
+  沒有說明欄位可填（後端要求必填），已修正；順便讓建立開團頁的滿贈勾選框
+  依活動是否支援滿贈自動鎖定。其餘規則對照全數通過。
+
+【測試】backend 全套測試維持 168 個測試、159 通過、9 失敗；9 個失敗皆為
+Supabase 測試資料庫累積的示範資料污染（角色名稱撞名、demo-member 帳號
+測試時真的送出的團主申請/訂單/取消申請造成筆數超出測試預期），與本次
+程式碼改動無關，已個別驗證確認。
+
+【重要提醒】測試過程中 demo-member 帳號的團主申請已被實際核准（Batch 4
+驗證流程的一部分），demo-member 現在已是團主身份（display_name 尚未設定，
+團主資料未完成）。
+
+下一步：Stage 7 四批全數完成，前台/會員/團主後台/管理員後台頁面皆已建置並
+實測。後續可考慮：Alembic downgrade() 實際驗證（沿用第 1 階段既有待辦）、
+行動裝置版面細節、圖片裁切上傳等進階功能（目前圖片上傳為原始檔案直傳，
+未做前端裁切）。

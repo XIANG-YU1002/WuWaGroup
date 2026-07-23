@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
-export default function SearchInput({ initialValue = "", className = "" }) {
-  const [value, setValue] = useState(initialValue);
+export default function SearchInput({ className = "" }) {
+  const [value, setValue] = useState("");
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    if (location.pathname !== "/search") {
+    if (location.pathname === "/search") {
+      setValue(searchParams.get("q") ?? "");
+    } else {
       setValue("");
     }
-  }, [location.pathname]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, searchParams]);
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -25,7 +29,7 @@ export default function SearchInput({ initialValue = "", className = "" }) {
     <form className={`search-input ${className}`} onSubmit={handleSubmit} role="search">
       <input
         type="search"
-        placeholder="搜尋活動、商品或角色"
+        placeholder="搜尋商品或角色"
         value={value}
         onChange={(event) => setValue(event.target.value)}
         aria-label="全站搜尋"

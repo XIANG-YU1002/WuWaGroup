@@ -12,14 +12,16 @@ export function AuthProvider({ children }) {
     const token = getToken();
     if (!token) {
       setUser(null);
-      return;
+      return null;
     }
     try {
       const response = await getCurrentSession(token);
       setUser(response.data);
+      return response.data;
     } catch {
       clearToken();
       setUser(null);
+      return null;
     }
   }, []);
 
@@ -32,7 +34,7 @@ export function AuthProvider({ children }) {
     async (email, password) => {
       const response = await loginRequest({ email, password });
       setToken(response.data.access_token);
-      await loadSession();
+      return loadSession();
     },
     [loadSession],
   );

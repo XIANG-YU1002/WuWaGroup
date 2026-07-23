@@ -1,4 +1,8 @@
-"""一次性示範資料腳本，供 Stage 6 前端頁面在瀏覽器實際檢視畫面效果使用。
+"""重置帳號相關資料並建立三個乾淨的示範帳號。
+
+只清除「帳號範疇」資料（app_user 及其關聯的團主資料/申請、跟團清單、訂單、
+收藏、公告、通知），保留現有的活動／商品／角色（目錄資料，不屬於帳號範疇），
+並在既有的開放活動與商品下重新建立一筆開團，讓前台頁面仍有內容可預覽。
 
 寫入真實 Supabase 資料庫（非自動 rollback 的測試資料庫）。
 執行方式：於 backend/ 目錄啟用 venv 後執行 `python scripts/seed_demo_data.py`。
@@ -8,33 +12,64 @@
 
 from datetime import datetime, timedelta, timezone
 
+from sqlalchemy import text
+
 from app.core.database import SessionLocal
 from app.core.security import hash_password
-from app.models.activity import Activity
-from app.models.enums import (
-    ActivityStatus,
-    ContactPlatform,
-    GroupBuyStatus,
-    PaymentMethod,
-    UserRole,
-)
+from app.models.enums import ContactPlatform, GroupBuyStatus, PaymentMethod, UserRole
 from app.models.group_buy import GroupBuy, GroupBuyProduct
 from app.models.group_leader import GroupLeaderProfile
-from app.models.product import Character, Product, ProductCharacter
 from app.models.user import AppUser
 
 PASSWORD = "Passw0rd1"
+
+# 清除順序：先子表後父表，避免違反外鍵限制。活動／商品／角色刻意不在此列。
+ACCOUNT_SCOPED_TABLES = [
+    "notification",
+    "cancellation_request",
+    "order_item",
+    "group_order",
+    "follow_list_item",
+    "follow_list",
+    "product_favorite",
+    "announcement",
+    "group_buy_product",
+    "group_buy",
+    "group_leader_application",
+    "group_leader_profile",
+    "app_user",
+]
 
 
 def main() -> None:
     db = SessionLocal()
     try:
-        admin = AppUser(
-            email="demo-admin@example.com",
+        for table in ACCOUNT_SCOPED_TABLES:
+            db.execute(text(f'DELETE FROM "{table}"'))
+
+        open_activity_id = db.execute(
+            text("SELECT id FROM activity WHERE status = 'open' ORDER BY created_at LIMIT 1")
+        ).scalar()
+        product_rows = db.execute(
+            text(
+                "SELECT id FROM product WHERE activity_id = :activity_id ORDER BY created_at"
+            ),
+            {"activity_id": open_activity_id},
+        ).fetchall()
+        product_ids = [row[0] for row in product_rows]
+
+        if open_activity_id is None or len(product_ids) < 2:
+            raise RuntimeError(
+                "找不到既有的開放活動或商品，無法重建示範開團；"
+                "請確認 activity/product 資料表仍保留原有目錄資料。"
+            )
+
+        member = AppUser(
+            email="demo-member@example.com",
             password_hash=hash_password(PASSWORD),
-            nickname="示範管理員",
-            discord_contact="demo_admin",
-            role=UserRole.ADMIN,
+            nickname="示範會員",
+            discord_contact="demo_member",
+            role=UserRole.MEMBER,
         )
         leader_user = AppUser(
             email="demo-leader@example.com",
@@ -43,7 +78,14 @@ def main() -> None:
             discord_contact="demo_leader",
             role=UserRole.MEMBER,
         )
-        db.add_all([admin, leader_user])
+        admin = AppUser(
+            email="demo-admin@example.com",
+            password_hash=hash_password(PASSWORD),
+            nickname="示範管理員",
+            discord_contact="demo_admin",
+            role=UserRole.ADMIN,
+        )
+        db.add_all([member, leader_user, admin])
         db.flush()
 
         leader_profile = GroupLeaderProfile(
@@ -56,57 +98,9 @@ def main() -> None:
         db.add(leader_profile)
         db.flush()
 
-        open_activity = Activity(
-            name="3.4 官方周邊（示範）",
-            description="示範用活動說明文字。",
-            image_url="https://placehold.co/960x540?text=Activity",
-            status=ActivityStatus.OPEN,
-            has_full_gift=True,
-        )
-        ended_activity = Activity(
-            name="Solar5 主題周邊（示範，已結束）",
-            description="示範用已結束活動。",
-            image_url="https://placehold.co/960x540?text=Ended+Activity",
-            status=ActivityStatus.ENDED,
-            has_full_gift=False,
-        )
-        db.add_all([open_activity, ended_activity])
-        db.flush()
-
-        character_jinhsi = Character(name="今汐")
-        character_changli = Character(name="長離")
-        db.add_all([character_jinhsi, character_changli])
-        db.flush()
-
-        product1 = Product(
-            activity_id=open_activity.id,
-            name="今汐壓克力立牌（示範）",
-            official_price="59.00",
-            official_currency="CNY",
-            primary_image_url="https://placehold.co/600x600?text=Product+1",
-            is_active=True,
-        )
-        product2 = Product(
-            activity_id=open_activity.id,
-            name="長離資料夾（示範）",
-            official_price="39.00",
-            official_currency="CNY",
-            primary_image_url="https://placehold.co/600x600?text=Product+2",
-            is_active=True,
-        )
-        db.add_all([product1, product2])
-        db.flush()
-
-        db.add_all(
-            [
-                ProductCharacter(product_id=product1.id, character_id=character_jinhsi.id),
-                ProductCharacter(product_id=product2.id, character_id=character_changli.id),
-            ]
-        )
-
         group_buy = GroupBuy(
             group_leader_profile_id=leader_profile.id,
-            activity_id=open_activity.id,
+            activity_id=open_activity_id,
             payment_method=PaymentMethod.CASH_ON_DELIVERY,
             requires_second_payment=False,
             includes_full_gift=True,
@@ -123,13 +117,13 @@ def main() -> None:
             [
                 GroupBuyProduct(
                     group_buy_id=group_buy.id,
-                    product_id=product1.id,
+                    product_id=product_ids[0],
                     unit_price="65.00",
                     max_quantity=20,
                 ),
                 GroupBuyProduct(
                     group_buy_id=group_buy.id,
-                    product_id=product2.id,
+                    product_id=product_ids[1],
                     unit_price="45.00",
                     max_quantity=15,
                 ),
@@ -138,14 +132,12 @@ def main() -> None:
 
         db.commit()
 
-        print("示範資料建立完成：")
-        print(f"  管理員帳號：{admin.email} / {PASSWORD}")
-        print(f"  團主帳號：  {leader_user.email} / {PASSWORD}")
-        print(f"  開放活動 id：{open_activity.id}")
-        print(f"  商品1 id：  {product1.id}")
-        print(f"  商品2 id：  {product2.id}")
+        print("帳號資料已重置，示範資料建立完成：")
+        print(f"  一般會員帳號：{member.email} / {PASSWORD}")
+        print(f"  團主帳號：    {leader_user.email} / {PASSWORD}")
+        print(f"  管理員帳號：  {admin.email} / {PASSWORD}")
         print(f"  團主 profile id：{leader_profile.id}")
-        print(f"  開團 id：   {group_buy.id}")
+        print(f"  開團 id：       {group_buy.id}")
     finally:
         db.close()
 

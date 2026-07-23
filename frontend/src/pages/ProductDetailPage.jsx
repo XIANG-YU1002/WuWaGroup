@@ -9,7 +9,7 @@ import PageLoader from "../components/common/PageLoader.jsx";
 import Pagination from "../components/common/Pagination.jsx";
 import FavoriteButton from "../components/product/FavoriteButton.jsx";
 import ProductGallery from "../components/product/ProductGallery.jsx";
-import GroupBuyCard from "../components/group-buy/GroupBuyCard.jsx";
+import GroupBuyCompareTable from "../components/group-buy/GroupBuyCompareTable.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const SORT_OPTIONS = [
@@ -119,7 +119,12 @@ export default function ProductDetailPage() {
       </div>
 
       <section className="section">
-        <h2 className="section-title">開團比較</h2>
+        <div className="group-buy-card-row">
+          <h2 className="section-title" style={{ marginBottom: 0 }}>
+            可跟團開團
+            {pagination && <span className="helper-text"> {pagination.total_items} 筆開團中</span>}
+          </h2>
+        </div>
 
         <div className="group-buy-card-row">
           <label>
@@ -158,9 +163,7 @@ export default function ProductDetailPage() {
           <EmptyState title="目前沒有符合條件的開團。" />
         ) : (
           <>
-            {groupBuys.map((groupBuy) => (
-              <GroupBuyCard key={groupBuy.group_buy_product_id} groupBuy={groupBuy} />
-            ))}
+            <GroupBuyCompareTable groupBuys={groupBuys} />
             <Pagination
               page={pagination.page}
               totalPages={pagination.total_pages}
