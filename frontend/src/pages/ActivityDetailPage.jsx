@@ -7,7 +7,7 @@ import ErrorState from "../components/common/ErrorState.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
 import StatusBadge from "../components/common/StatusBadge.jsx";
 import ProductCard from "../components/product/ProductCard.jsx";
-import { ApiError } from "../api/client.js";
+import { ApiError, resolveMediaUrl } from "../api/client.js";
 
 export default function ActivityDetailPage() {
   const { activityId } = useParams();
@@ -52,7 +52,7 @@ export default function ActivityDetailPage() {
       <Breadcrumb items={[{ label: "首頁", to: "/" }, { label: activity.name }]} />
 
       <div className="activity-detail-header">
-        <img className="card-image" src={activity.image_url} alt={activity.name} />
+        <img className="card-image" src={resolveMediaUrl(activity.image_url)} alt={activity.name} />
         <div>
           <h1>{activity.name}</h1>
           <StatusBadge domain="activity" value={activity.status} />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { listGroupLeaders } from "../api/groupLeaders.js";
+import { resolveMediaUrl } from "../api/client.js";
 import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
@@ -78,7 +79,7 @@ export default function GroupLeaderListPage() {
             <div key={profile.id} className="group-buy-card">
               <div className="group-leader-banner-main" style={{ border: "none", padding: 0 }}>
                 {profile.avatar_url ? (
-                  <img className="card-image-square" src={profile.avatar_url} alt="" style={{ width: "5rem", height: "5rem" }} />
+                  <img className="card-image-square" src={resolveMediaUrl(profile.avatar_url)} alt="" style={{ width: "5rem", height: "5rem" }} />
                 ) : (
                   <div
                     className="card-image-square avatar-circle"

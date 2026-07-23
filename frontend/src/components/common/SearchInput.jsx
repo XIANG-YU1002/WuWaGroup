@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { SearchIcon } from "./icons.jsx";
 
 export default function SearchInput({ className = "" }) {
   const [value, setValue] = useState("");
@@ -34,8 +35,8 @@ export default function SearchInput({ className = "" }) {
         onChange={(event) => setValue(event.target.value)}
         aria-label="全站搜尋"
       />
-      <button type="submit" aria-label="搜尋">
-        搜尋
+      <button type="submit" className="search-input-icon-btn" aria-label="搜尋">
+        <SearchIcon className="icon-search" />
       </button>
     </form>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 export default function Modal({ title, onClose, children, footer }) {
   const modalRef = useRef(null);
@@ -15,7 +16,7 @@ export default function Modal({ title, onClose, children, footer }) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div
       className="modal-overlay"
       onMouseDown={(event) => {
@@ -41,6 +42,7 @@ export default function Modal({ title, onClose, children, footer }) {
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-footer">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

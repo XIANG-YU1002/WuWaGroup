@@ -1,5 +1,6 @@
-import { NavLink, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import LogoutButton from "../components/common/LogoutButton.jsx";
 
 const NAV_ITEMS = [
   { to: "/profile", label: "個人資料" },
@@ -11,8 +12,7 @@ const NAV_ITEMS = [
 ];
 
 export default function MemberLayout() {
-  const { isAuthenticated, initializing, logout } = useAuth();
-  const navigate = useNavigate();
+  const { isAuthenticated, initializing } = useAuth();
 
   if (initializing) {
     return null;
@@ -20,11 +20,6 @@ export default function MemberLayout() {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
-  }
-
-  function handleLogout() {
-    logout();
-    navigate("/");
   }
 
   return (
@@ -41,9 +36,7 @@ export default function MemberLayout() {
             </NavLink>
           ))}
         </nav>
-        <button type="button" className="member-sidebar-logout" onClick={handleLogout}>
-          登出
-        </button>
+        <LogoutButton className="member-sidebar-logout" />
       </aside>
       <div className="member-content">
         <Outlet />

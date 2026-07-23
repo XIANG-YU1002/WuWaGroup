@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { getGroupBuyAnnouncements, getGroupBuyDetail } from "../api/groupBuys.js";
 import { addFollowListItem } from "../api/followList.js";
-import { ApiError } from "../api/client.js";
+import { ApiError, resolveMediaUrl } from "../api/client.js";
 import Alert from "../components/common/Alert.jsx";
 import Breadcrumb from "../components/common/Breadcrumb.jsx";
 import Button from "../components/common/Button.jsx";
@@ -91,7 +91,7 @@ function AddToFollowListPanel({ product, groupBuy }) {
           <img
             className="card-image card-image-square"
             style={{ width: "4.5rem", height: "4.5rem", flexShrink: 0, borderRadius: "var(--radius)" }}
-            src={product.product.primary_image_url}
+            src={resolveMediaUrl(product.product.primary_image_url)}
             alt={product.product.name}
           />
         )}

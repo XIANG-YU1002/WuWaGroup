@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getProductDetail, getProductGroupBuys } from "../api/products.js";
-import { ApiError } from "../api/client.js";
+import { ApiError, resolveMediaUrl } from "../api/client.js";
 import Breadcrumb from "../components/common/Breadcrumb.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
@@ -85,7 +85,9 @@ export default function ProductDetailPage() {
     return <PageLoader />;
   }
 
-  const images = [product.primary_image_url, ...product.images.map((image) => image.image_url)];
+  const images = [product.primary_image_url, ...product.images.map((image) => image.image_url)].map(
+    resolveMediaUrl,
+  );
 
   return (
     <>

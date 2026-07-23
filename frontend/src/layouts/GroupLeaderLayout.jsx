@@ -1,5 +1,6 @@
-import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import LogoutButton from "../components/common/LogoutButton.jsx";
 
 const NAV_ITEMS = [
   { to: "/group-leader", label: "儀表板", end: true },
@@ -11,9 +12,8 @@ const NAV_ITEMS = [
 ];
 
 export default function GroupLeaderLayout() {
-  const { user, initializing, isAuthenticated, logout } = useAuth();
+  const { user, initializing, isAuthenticated } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
 
   if (initializing) {
     return null;
@@ -29,11 +29,6 @@ export default function GroupLeaderLayout() {
 
   if (!user.group_leader.is_profile_complete && location.pathname !== "/group-leader/profile") {
     return <Navigate to="/group-leader/profile" replace />;
-  }
-
-  function handleLogout() {
-    logout();
-    navigate("/");
   }
 
   return (
@@ -54,9 +49,7 @@ export default function GroupLeaderLayout() {
             </NavLink>
           ))}
         </nav>
-        <button type="button" className="member-sidebar-logout" onClick={handleLogout}>
-          登出
-        </button>
+        <LogoutButton className="member-sidebar-logout" />
       </aside>
       <div className="member-content">
         <Outlet />

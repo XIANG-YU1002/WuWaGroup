@@ -75,6 +75,14 @@
   background-color: var(--color-danger-dark);
 }
 
+.btn-muted {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+.btn-muted:hover:not(:disabled) {
+  background-color: #d1d5db;
+}
+
 .btn-ghost {
   background-color: transparent;
   color: var(--color-text);
@@ -277,25 +285,40 @@
 }
 
 .modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
+  position: relative;
+  padding: 1.1rem 3rem 1.1rem 1.25rem;
   border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .modal-close-btn {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   background: none;
   border: none;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   cursor: pointer;
   color: var(--color-text-muted);
   line-height: 1;
+}
+
+.modal-close-btn:hover {
+  background-color: #f0f0f7;
+  color: var(--color-text);
 }
 
 .modal-body {

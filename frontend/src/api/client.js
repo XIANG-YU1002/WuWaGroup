@@ -1,4 +1,15 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_ORIGIN = new URL(BASE_URL).origin;
+
+export function resolveMediaUrl(path) {
+  if (!path) {
+    return path;
+  }
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+  return `${API_ORIGIN}${path.startsWith("/") ? "" : "/"}${path}`;
+}
 
 export class ApiError extends Error {
   constructor(status, code, message, details) {

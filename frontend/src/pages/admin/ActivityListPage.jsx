@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { endAdminActivity, getAdminActivities, reopenAdminActivity } from "../../api/adminActivities.js";
+import { resolveMediaUrl } from "../../api/client.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import Button from "../../components/common/Button.jsx";
 import ConfirmModal from "../../components/common/ConfirmModal.jsx";
@@ -130,7 +131,7 @@ export default function ActivityListPage() {
                   <tr key={activity.id}>
                     <td>
                       <img
-                        src={activity.image_url}
+                        src={resolveMediaUrl(activity.image_url)}
                         alt=""
                         style={{ width: "3.5rem", height: "2rem", objectFit: "cover", borderRadius: "var(--radius)" }}
                       />

@@ -463,3 +463,87 @@ Supabase 測試資料庫累積的示範資料污染（角色名稱撞名、demo-
 實測。後續可考慮：Alembic downgrade() 實際驗證（沿用第 1 階段既有待辦）、
 行動裝置版面細節、圖片裁切上傳等進階功能（目前圖片上傳為原始檔案直傳，
 未做前端裁切）。
+
+====================================
+Header 樣式改版 － 已完成並實測驗證通過
+====================================
+記錄時間：2026-07-23
+
+【範圍】依使用者提供的 02_活動詳情頁.jpg 樣板調整 Header 外觀，欄位內容不變：
+- 移除「首頁」文字連結，Logo 本身即為首頁連結。
+- 登入／註冊合併為單一連結「登入/註冊」。
+- 新增自製黑花星形 icon（frontend/src/components/common/icons.jsx 的
+  StarFlowerIcon，原創 SVG，非重製官方鳴潮美術資源），放在 Logo 文字左側。
+- 通知從點擊即跳轉改為小鈴鐺 icon＋下拉預覽（最新 6 筆＋未讀數字角標），
+  新增 frontend/src/components/common/NotificationBell.jsx，下拉選單內
+  「看所有通知」才會跳轉到通知頁。
+- 搜尋欄改為圓角膠囊樣式，搜尋按鈕可點擊送出（非僅 Enter），新增
+  SearchIcon 並調整 SearchInput.jsx。
+- 所有登出按鈕（Header 頭像選單、會員/團主/管理員側邊欄）統一改用新增的
+  frontend/src/components/common/LogoutButton.jsx 共用元件，點擊登出先跳出
+  「是否登出？」確認燈窗，按「是」才真正登出，按「否」保持登入狀態。
+- 未登入首頁 Header 與登入後首頁 Header 的差異已一併處理（見上）。
+
+【已用 Playwright 實測】登入/未登入兩種 Header 外觀、搜尋按鈕點擊導頁、
+通知下拉預覽正確顯示真實資料（含未讀樣式與相對時間）、登出確認燈窗按「否」
+仍維持登入、按「是」才真正登出並回到未登入 Header，全程 console 無錯誤。
+測試工具（playwright 套件、驗證用 .mjs 腳本）驗證後已全數移除，未留在
+專案相依套件中。
+
+下一步：等待使用者實際測試後回饋，逐頁提出修改需求。
+
+====================================
+Header 細部微調＋登出燈窗修正＋上傳圖片破圖修復 － 已完成並實測驗證通過
+====================================
+記錄時間：2026-07-23
+
+【Header 微調】
+- Logo icon 改為使用者提供的黑花圖片（frontend/src/assets/首頁icon.png，使用者
+  說明為自行以其他 AI 生成，非直接重製官方鳴潮美術資源），已去背、去除多餘
+  陰影髒污並裁切至僅保留花朵本體＋中心星芒。原先我自製的 StarFlowerIcon SVG
+  已移除，不再使用。
+- 搜尋欄改為置中顯示（app-header-inner 由 flex 改為三欄 grid：1fr auto(min)
+  1fr，讓中間欄不受左右兩側寬度影響，穩定置中），搜尋按鈕移到欄位右側並改為
+  實心圓形按鈕（明顯可點擊），欄寬修正回原本長度（先前 grid auto 欄寬計算
+  錯誤導致欄位过短）。
+- Header 文字（logo 標題／副標）字級放大，header 高度略增。
+
+【登出確認燈窗修正】
+- 排版：標題與關閉 X 按鈕分開，X 固定右上角，hover 反白範圍僅限 X 自身的
+  小圓形範圍。
+- 顏色：「是」改為紅底白字（btn-danger）、「否」改為灰底黑字（新增
+  .btn-muted class，ConfirmModal 的取消鈕改用 muted variant）。
+- 根因排查發現 2 個實際問題並修正：
+  1) Modal.jsx 原本沒有用 React Portal，若從 Header 頭像選單內觸發，燈窗
+     DOM 會巢狀在 .header-nav 內，導致 .header-nav button 的樣式（背景/
+     文字色）以更高優先級蓋掉 .btn-danger/.btn-secondary，造成按鈕顏色
+     怎麼調都無效、只剩 hover 有反應的假象。改為 createPortal 掛載到
+     document.body 解決。
+  2) 改用 Portal 後，AvatarMenu.jsx 原本用 mousedown 事件判斳「點擊外部」
+     關閉下拉選單（判斷依據是 DOM containment），因為燈窗現在 DOM 上已經
+     不在下拉選單容器內，導致按下「是」的 mousedown 瞬間就被誤判為點擊
+     外部，選單和燈窗一起被關閉，「是」的 click 事件因此遺失、永遠無法
+     真正登出。修正 handleClickOutside，偵測到點擊目標在 .modal-overlay
+     內時直接略過。
+
+【上傳圖片破圖問題 － 全站修復】
+使用者回報頭像上傳後顯示破圖，追查後發現是全站性問題：後端上傳 API
+回傳的是相對路徑（如 /uploads/avatar/2026/07/xxx.webp，掛載在後端 8000
+port 根目錄），但前端所有圖片皆直接 <img src=...> 使用，未轉換為後端完整
+網址，導致瀏覽器誤向前端自己的 origin（5173）請求該路徑而 404。
+新增 frontend/src/api/client.js 的 resolveMediaUrl() 共用函式（絕對網址
+直接放行，相對路徑補上後端 origin），並套用到全站約 19 處圖片顯示位置：
+會員/團主頭像（ProfilePage x2、AvatarMenu、GroupLeaderProfilePage、
+GroupLeaderListPage）、商品圖（ProductCard、ProductDetailPage、
+ProductListPage、ProductFormPage、GroupBuyCreatePage、GroupBuyDetailPage、
+FavoritesPage、FollowListPage、OrdersPage、OrderDetailPage）、活動圖
+（ActivityCard、ActivityDetailPage、ActivityListPage、ActivityFormPage）。
+已用 Playwright 實測頭像上傳全流程（含攔截網路請求確認圖片改用完整網址
+且回應 200），確認修復有效。
+
+【其他】
+清除 Supabase 中一筆 Playwright 測試殘留的活動垃圾資料（測試活動
+Playwright，圖片連結為假的上傳路徑，顯示破圖），已確認無開團引用後
+徵求使用者同意直接從資料庫刪除。
+
+下一步：等待使用者實際測試後回饋，逐頁提出修改需求。

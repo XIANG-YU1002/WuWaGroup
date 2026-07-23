@@ -6,6 +6,7 @@ import {
   removeFollowListItem,
   updateFollowListItemQuantity,
 } from "../../api/followList.js";
+import { resolveMediaUrl } from "../../api/client.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import Alert from "../../components/common/Alert.jsx";
 import Button from "../../components/common/Button.jsx";
@@ -170,7 +171,7 @@ export default function FollowListPage() {
                     <td>
                       <div className="group-buy-card-row">
                         <img
-                          src={item.product.primary_image_url}
+                          src={resolveMediaUrl(item.product.primary_image_url)}
                           alt={item.product.name}
                           style={{ width: "3rem", height: "3rem", objectFit: "cover", borderRadius: "var(--radius)" }}
                         />

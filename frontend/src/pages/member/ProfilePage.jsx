@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getMyProfile, updateMyContacts, updateMyProfile } from "../../api/users.js";
 import { uploadImage } from "../../api/uploads.js";
+import { resolveMediaUrl } from "../../api/client.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import Alert from "../../components/common/Alert.jsx";
 import Button from "../../components/common/Button.jsx";
@@ -105,7 +106,7 @@ export default function ProfilePage() {
       <form onSubmit={handleSave}>
         <div className="group-buy-card-row" style={{ marginBottom: "1.5rem" }}>
           {avatarUrl ? (
-            <img className="avatar-circle" style={{ width: "4.5rem", height: "4.5rem", fontSize: "1.5rem" }} src={avatarUrl} alt="" />
+            <img className="avatar-circle" style={{ width: "4.5rem", height: "4.5rem", fontSize: "1.5rem" }} src={resolveMediaUrl(avatarUrl)} alt="" />
           ) : (
             <span className="avatar-circle" style={{ width: "4.5rem", height: "4.5rem", fontSize: "1.5rem" }} aria-hidden="true">
               {nickname?.[0]?.toUpperCase() ?? "?"}

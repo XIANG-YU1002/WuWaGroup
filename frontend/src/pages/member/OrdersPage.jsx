@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getMyOrders } from "../../api/orders.js";
+import { resolveMediaUrl } from "../../api/client.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import EmptyState from "../../components/common/EmptyState.jsx";
 import ErrorState from "../../components/common/ErrorState.jsx";
@@ -87,7 +88,7 @@ export default function OrdersPage() {
             <div key={order.id} className="group-buy-card">
               <div className="group-buy-card-row">
                 <img
-                  src={order.representative_image_url}
+                  src={resolveMediaUrl(order.representative_image_url)}
                   alt=""
                   style={{ width: "3.5rem", height: "3.5rem", objectFit: "cover", borderRadius: "var(--radius)" }}
                 />

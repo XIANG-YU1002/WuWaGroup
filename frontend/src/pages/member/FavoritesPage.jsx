@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getFavoriteProducts, removeFavorite } from "../../api/favorites.js";
+import { resolveMediaUrl } from "../../api/client.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import EmptyState from "../../components/common/EmptyState.jsx";
 import ErrorState from "../../components/common/ErrorState.jsx";
@@ -62,7 +63,7 @@ export default function FavoritesPage() {
               <div key={item.favorite_id} className="card">
                 <img
                   className="card-image card-image-square"
-                  src={item.product.primary_image_url}
+                  src={resolveMediaUrl(item.product.primary_image_url)}
                   alt={item.product.name}
                   loading="lazy"
                 />

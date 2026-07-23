@@ -5,6 +5,7 @@ import {
   updateMyGroupLeaderProfile,
 } from "../../api/groupLeaderProfile.js";
 import { uploadImage } from "../../api/uploads.js";
+import { resolveMediaUrl } from "../../api/client.js";
 import { getMyProfile, updateMyProfile } from "../../api/users.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import Alert from "../../components/common/Alert.jsx";
@@ -138,7 +139,7 @@ export default function ProfilePage() {
         <div className="group-buy-card">
           <div className="group-buy-card-row" style={{ marginBottom: "1rem" }}>
             {avatarUrl ? (
-              <img className="avatar-circle" style={{ width: "4.5rem", height: "4.5rem", fontSize: "1.5rem" }} src={avatarUrl} alt="" />
+              <img className="avatar-circle" style={{ width: "4.5rem", height: "4.5rem", fontSize: "1.5rem" }} src={resolveMediaUrl(avatarUrl)} alt="" />
             ) : (
               <span className="avatar-circle" style={{ width: "4.5rem", height: "4.5rem", fontSize: "1.5rem" }} aria-hidden="true">
                 {displayName?.[0] ?? "?"}

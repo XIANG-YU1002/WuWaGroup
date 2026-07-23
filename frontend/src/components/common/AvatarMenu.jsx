@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { resolveMediaUrl } from "../../api/client.js";
+import LogoutButton from "./LogoutButton.jsx";
 
 export default function AvatarMenu() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event) {
+      if (event.target.closest(".modal-overlay")) {
+        return;
+      }
       if (containerRef.current && !containerRef.current.contains(event.target)) {
         setOpen(false);
       }
@@ -17,12 +21,6 @@ export default function AvatarMenu() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  function handleLogout() {
-    logout();
-    setOpen(false);
-    navigate("/");
-  }
 
   const initial = user.nickname?.[0]?.toUpperCase() ?? "?";
   const isAdmin = user.permissions?.is_admin ?? false;
@@ -37,7 +35,7 @@ export default function AvatarMenu() {
         aria-expanded={open}
       >
         {user.avatar_url ? (
-          <img className="avatar-circle" src={user.avatar_url} alt="" />
+          <img className="avatar-circle" src={resolveMediaUrl(user.avatar_url)} alt="" />
         ) : (
           <span className="avatar-circle" aria-hidden="true">
             {initial}
@@ -81,9 +79,7 @@ export default function AvatarMenu() {
               )}
             </>
           )}
-          <button type="button" role="menuitem" onClick={handleLogout}>
-            登出
-          </button>
+          <LogoutButton role="menuitem" onBeforeConfirm={() => setOpen(false)} />
         </div>
       )}
     </div>

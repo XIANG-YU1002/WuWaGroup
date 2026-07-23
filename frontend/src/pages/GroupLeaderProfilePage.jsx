@@ -6,7 +6,7 @@ import {
   getGroupLeaderProfile,
 } from "../api/groupLeaders.js";
 import { getGroupBuyDetail } from "../api/groupBuys.js";
-import { ApiError } from "../api/client.js";
+import { ApiError, resolveMediaUrl } from "../api/client.js";
 import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
@@ -97,7 +97,7 @@ export default function GroupLeaderProfilePage() {
       <div className="group-leader-banner">
         <div className="group-leader-banner-main">
           {profile.avatar_url ? (
-            <img className="card-image-square" src={profile.avatar_url} alt="" />
+            <img className="card-image-square" src={resolveMediaUrl(profile.avatar_url)} alt="" />
           ) : (
             <div className="card-image-square avatar-circle" style={{ fontSize: "2rem" }} aria-hidden="true">
               {profile.display_name?.[0] ?? "?"}
@@ -146,7 +146,7 @@ export default function GroupLeaderProfilePage() {
               <div key={card.groupBuyProductId} className="card">
                 <img
                   className="card-image card-image-square"
-                  src={card.product.primary_image_url}
+                  src={resolveMediaUrl(card.product.primary_image_url)}
                   alt={card.product.name}
                   loading="lazy"
                 />

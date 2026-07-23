@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getActivities } from "../../api/activities.js";
 import { deactivateAdminProduct, getAdminProducts, reactivateAdminProduct } from "../../api/adminProducts.js";
+import { resolveMediaUrl } from "../../api/client.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import Button from "../../components/common/Button.jsx";
 import EmptyState from "../../components/common/EmptyState.jsx";
@@ -127,7 +128,7 @@ export default function ProductListPage() {
                   <tr key={product.id}>
                     <td>
                       <img
-                        src={product.primary_image_url}
+                        src={resolveMediaUrl(product.primary_image_url)}
                         alt=""
                         style={{ width: "3rem", height: "3rem", objectFit: "cover", borderRadius: "var(--radius)" }}
                       />

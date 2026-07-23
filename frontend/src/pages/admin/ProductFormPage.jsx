@@ -12,7 +12,7 @@ import {
 } from "../../api/adminProducts.js";
 import { uploadImage } from "../../api/uploads.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { ApiError } from "../../api/client.js";
+import { ApiError, resolveMediaUrl } from "../../api/client.js";
 import Alert from "../../components/common/Alert.jsx";
 import Button from "../../components/common/Button.jsx";
 import ErrorState from "../../components/common/ErrorState.jsx";
@@ -238,7 +238,7 @@ export default function ProductFormPage() {
         <FormField label="主圖" htmlFor="product-primary-image" required>
           {primaryImageUrl && (
             <img
-              src={primaryImageUrl}
+              src={resolveMediaUrl(primaryImageUrl)}
               alt=""
               style={{ width: "8rem", height: "8rem", objectFit: "cover", borderRadius: "var(--radius)", marginBottom: "0.5rem" }}
             />
@@ -261,7 +261,7 @@ export default function ProductFormPage() {
               {extraImages.map((image, index) => (
                 <div key={image.id} style={{ position: "relative" }}>
                   <img
-                    src={image.image_url}
+                    src={resolveMediaUrl(image.image_url)}
                     alt=""
                     style={{ width: "5rem", height: "5rem", objectFit: "cover", borderRadius: "var(--radius)" }}
                   />

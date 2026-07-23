@@ -17,7 +17,7 @@ export default function ConfirmModal({
       onClose={onCancel}
       footer={
         <>
-          <Button variant="secondary" onClick={onCancel} disabled={loading}>
+          <Button variant="muted" onClick={onCancel} disabled={loading}>
             {cancelLabel}
           </Button>
           <Button variant={danger ? "danger" : "primary"} onClick={onConfirm} loading={loading}>
