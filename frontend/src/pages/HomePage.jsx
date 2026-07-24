@@ -41,8 +41,8 @@ export default function HomePage() {
   return (
     <>
       <div className="hero">
-        <h1>WuWaGroup</h1>
-        <p>官方周邊開團資訊整合</p>
+        <h1>EchoGather</h1>
+        <p>鳴潮周邊團購平台</p>
       </div>
 
       <section className="section">

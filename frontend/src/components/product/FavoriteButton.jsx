@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { addFavorite, removeFavorite } from "../../api/favorites.js";
 import Button from "../common/Button.jsx";
+import { HeartIcon } from "../common/icons.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function FavoriteButton({ productId, initialFavorited }) {
@@ -41,8 +42,14 @@ export default function FavoriteButton({ productId, initialFavorited }) {
   }
 
   return (
-    <Button variant={isFavorited ? "secondary" : "primary"} loading={submitting} onClick={handleClick}>
-      {isFavorited ? "已收藏" : "收藏商品"}
+    <Button
+      variant="secondary"
+      loading={submitting}
+      onClick={handleClick}
+      className={isFavorited ? "favorite-btn is-favorited" : "favorite-btn"}
+    >
+      {!submitting && <HeartIcon className="favorite-btn-icon" filled={isFavorited} />}
+      {isFavorited ? "已收藏" : "加入收藏"}
     </Button>
   );
 }

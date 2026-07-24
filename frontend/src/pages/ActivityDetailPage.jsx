@@ -50,16 +50,22 @@ export default function ActivityDetailPage() {
 
   return (
     <>
-      <Breadcrumb items={[{ label: "首頁", to: "/" }, { label: activity.name }]} />
+      <Breadcrumb
+        items={[{ label: "首頁", to: "/" }, { label: "活動", to: "/" }, { label: activity.name }]}
+      />
 
-      <div className="activity-detail-header">
-        <MediaImage className="card-image" src={activity.image_url} alt={activity.name} />
-        <div>
-          <h1>{activity.name}</h1>
-          <StatusBadge domain="activity" value={activity.status} />
-          {activity.description && <p>{activity.description}</p>}
+      <div className="activity-hero">
+        <MediaImage className="activity-hero-media" src={activity.image_url} alt={activity.name} />
+        <div className="activity-hero-body">
+          <div className="activity-hero-title-row">
+            <h1>{activity.name}</h1>
+            <StatusBadge domain="activity" value={activity.status} />
+          </div>
+          {activity.description && <p className="activity-hero-desc">{activity.description}</p>}
           {activity.status === "ended" && (
-            <p className="helper-text">此活動已結束，目前無法建立新的開團。</p>
+            <p className="helper-text" style={{ marginTop: "-0.5rem" }}>
+              此活動已結束，目前無法建立新的開團。
+            </p>
           )}
         </div>
       </div>

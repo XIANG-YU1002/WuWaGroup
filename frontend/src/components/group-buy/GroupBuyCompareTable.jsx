@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { resolveMediaUrl } from "../../api/client.js";
 
 const PAYMENT_METHOD_LABELS = {
   bank_transfer: "匯款",
@@ -24,7 +25,23 @@ function formatDeadline(isoString) {
   });
 }
 
-export default function GroupBuyCompareTable({ groupBuys }) {
+function LeaderCell({ leader }) {
+  const initial = leader.display_name?.[0]?.toUpperCase() ?? "?";
+  return (
+    <Link to={`/group-leaders/${leader.id}`} className="compare-leader">
+      {leader.avatar_url ? (
+        <img className="avatar-circle avatar-circle-sm" src={resolveMediaUrl(leader.avatar_url)} alt="" />
+      ) : (
+        <span className="avatar-circle avatar-circle-sm" aria-hidden="true">
+          {initial}
+        </span>
+      )}
+      <span>{leader.display_name}</span>
+    </Link>
+  );
+}
+
+export default function GroupBuyCompareTable({ groupBuys, showFullGift = true }) {
   return (
     <div className="table-wrap">
       <table className="table">
@@ -34,8 +51,8 @@ export default function GroupBuyCompareTable({ groupBuys }) {
             <th>價格 (TWD)</th>
             <th>付款方式</th>
             <th>需二補</th>
-            <th>含滿贈</th>
-            <th>收單時間</th>
+            {showFullGift && <th>含滿贈</th>}
+            <th>收團時間</th>
             <th>剩餘數量</th>
             <th>操作</th>
           </tr>
@@ -44,25 +61,23 @@ export default function GroupBuyCompareTable({ groupBuys }) {
           {groupBuys.map((groupBuy) => (
             <tr key={groupBuy.group_buy_product_id}>
               <td>
-                <Link to={`/group-leaders/${groupBuy.group_leader.id}`}>
-                  {groupBuy.group_leader.display_name}
-                </Link>
+                <LeaderCell leader={groupBuy.group_leader} />
               </td>
-              <td>NT$ {groupBuy.unit_price}</td>
+              <td>
+                <span className="compare-price">NT$ {groupBuy.unit_price}</span>
+              </td>
               <td>
                 {PAYMENT_METHOD_LABELS[groupBuy.payment_method]}
                 {groupBuy.payment_method_note ? `（${groupBuy.payment_method_note}）` : ""}
               </td>
               <td>{groupBuy.requires_second_payment ? "是" : "否"}</td>
-              <td>{groupBuy.includes_full_gift ? "有" : "無"}</td>
+              {showFullGift && <td>{groupBuy.includes_full_gift ? "有" : "無"}</td>}
               <td>{formatDeadline(groupBuy.deadline_at)}</td>
               <td>
                 {groupBuy.is_available ? (
-                  <span style={{ color: "var(--color-success)" }}>
-                    剩餘 {groupBuy.available_quantity}
-                  </span>
+                  <span className="remaining-ok">剩餘 {groupBuy.available_quantity}</span>
                 ) : (
-                  <span style={{ color: "var(--color-danger)" }}>
+                  <span className="remaining-none">
                     {UNAVAILABLE_REASON_LABELS[groupBuy.effective_status] ?? "不可跟團"}
                   </span>
                 )}

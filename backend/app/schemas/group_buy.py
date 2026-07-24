@@ -20,6 +20,7 @@ class GroupBuyActivitySummary(BaseModel):
     id: uuid.UUID
     name: str
     status: ActivityStatus
+    has_full_gift: bool = False
 
 
 class GroupBuyProductRef(BaseModel):

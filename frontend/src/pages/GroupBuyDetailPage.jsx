@@ -10,13 +10,24 @@ import Button from "../components/common/Button.jsx";
 import ConfirmModal from "../components/common/ConfirmModal.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
-import StatusBadge from "../components/common/StatusBadge.jsx";
+import {
+  BagIcon,
+  CalendarIcon,
+  ChatIcon,
+  CheckCircleIcon,
+  ClipboardIcon,
+  CreditCardIcon,
+  GiftIcon,
+  RefreshIcon,
+  TagIcon,
+  UsersIcon,
+} from "../components/common/icons.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const CONTACT_PLATFORM_LABELS = { facebook: "Facebook", discord: "Discord", line: "LINE" };
 const PAYMENT_METHOD_LABELS = {
-  bank_transfer: "銀行匯款",
-  cash_on_delivery: "貨到付款／取貨付款",
+  bank_transfer: "匯款",
+  cash_on_delivery: "可取付",
   other: "其他",
 };
 const UNAVAILABLE_REASON_LABELS = {
@@ -27,11 +38,24 @@ const UNAVAILABLE_REASON_LABELS = {
 };
 
 function formatDeadline(isoString) {
-  return new Date(isoString).toLocaleString("zh-TW", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Taipei",
-  });
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return isoString;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}`;
+}
+
+function InfoItem({ icon, label, value, valueClass = "" }) {
+  return (
+    <div className="meta-chip">
+      <span className="meta-chip-icon">{icon}</span>
+      <span className="meta-chip-text">
+        <span className="meta-chip-label">{label}</span>
+        <span className={`meta-chip-value ${valueClass}`}>{value}</span>
+      </span>
+    </div>
+  );
 }
 
 function AddToFollowListPanel({ product, groupBuy }) {
@@ -40,14 +64,16 @@ function AddToFollowListPanel({ product, groupBuy }) {
   const location = useLocation();
 
   // 管理員全程在後台作業，前台僅供瀏覽；不提供加入跟團清單，避免產生無用資料。
-  if (user?.permissions?.is_admin) {
-    return null;
-  }
+  const isAdmin = user?.permissions?.is_admin;
 
   const [quantity, setQuantity] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [conflict, setConflict] = useState(null);
+
+  if (isAdmin) {
+    return null;
+  }
 
   const maxQuantity = Math.max(product.available_quantity, 1);
 
@@ -81,7 +107,10 @@ function AddToFollowListPanel({ product, groupBuy }) {
   function handleAddClick() {
     if (!isAuthenticated) {
       navigate("/login", {
-        state: { redirectPath: location.pathname + location.search, message: "請先登入後使用跟團清單功能。" },
+        state: {
+          redirectPath: location.pathname + location.search,
+          message: "請先登入後使用跟團清單功能。",
+        },
       });
       return;
     }
@@ -89,74 +118,92 @@ function AddToFollowListPanel({ product, groupBuy }) {
   }
 
   return (
-    <aside className="group-buy-card">
-      <h2 className="section-title">加入跟團清單</h2>
+    <aside className="gb-panel gb-side">
+      <h2 className="gb-side-title">加入跟團清單</h2>
 
-      <div className="group-buy-card-row">
+      <div className="gb-side-product">
         {product.product.primary_image_url && (
-          <MediaImage
-            className="card-image card-image-square"
-            style={{ width: "4.5rem", height: "4.5rem", flexShrink: 0, borderRadius: "var(--radius)" }}
-            src={product.product.primary_image_url}
-            alt={product.product.name}
-          />
+          <MediaImage src={product.product.primary_image_url} alt={product.product.name} />
         )}
         <div>
-          <p style={{ fontWeight: 600, margin: 0 }}>{product.product.name}</p>
+          <p className="gb-side-product-name">{product.product.name}</p>
+          <span className="gb-badge">{groupBuy.activity.name}</span>
         </div>
       </div>
 
-      <dl className="detail-list">
-        <dt>選擇團主</dt>
-        <dd>{groupBuy.group_leader.display_name}</dd>
-        <dt>單價</dt>
-        <dd>NT$ {product.unit_price}</dd>
-      </dl>
+      <div className="gb-side-row">
+        <span className="label">選擇團主</span>
+        <span className="value">{groupBuy.group_leader.display_name}</span>
+      </div>
+      <div className="gb-side-row">
+        <span className="label">單價</span>
+        <span className="value is-price">NT$ {product.unit_price}</span>
+      </div>
+
+      {product.is_available && (
+        <>
+          <p className="meta-chip-label" style={{ marginBottom: "0.4rem" }}>
+            數量
+          </p>
+          <div className="gb-qty">
+            <button
+              type="button"
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              disabled={quantity <= 1}
+              aria-label="減少數量"
+            >
+              −
+            </button>
+            <span className="qty-value">{quantity}</span>
+            <button
+              type="button"
+              onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
+              disabled={quantity >= maxQuantity}
+              aria-label="增加數量"
+            >
+              +
+            </button>
+          </div>
+        </>
+      )}
+
+      {product.is_available ? (
+        <div className="gb-status-box ok">
+          <span className="status-label">
+            <CheckCircleIcon />
+            尚可跟團
+          </span>
+          <span className="remaining">剩餘 {product.available_quantity} 個</span>
+        </div>
+      ) : (
+        <div className="gb-status-box no">
+          <span className="status-label">
+            {UNAVAILABLE_REASON_LABELS[groupBuy.effective_status] ?? "目前不可跟團"}
+          </span>
+        </div>
+      )}
 
       {feedback && <Alert type={feedback.type}>{feedback.message}</Alert>}
 
       {product.is_available ? (
-        <>
-          <div className="group-buy-card-row">
-            <div className="quantity-stepper">
-              <button
-                type="button"
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                disabled={quantity <= 1}
-                aria-label="減少數量"
-              >
-                -
-              </button>
-              <span>{quantity}</span>
-              <button
-                type="button"
-                onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
-                disabled={quantity >= maxQuantity}
-                aria-label="增加數量"
-              >
-                +
-              </button>
-            </div>
-            <span className="helper-text">剩餘 {product.available_quantity} 個</span>
-          </div>
-          <Button fullWidth onClick={handleAddClick} loading={submitting}>
-            加入跟團清單
-          </Button>
-        </>
+        <Button
+          className="gb-side-btn"
+          fullWidth
+          onClick={handleAddClick}
+          loading={submitting}
+        >
+          <ClipboardIcon />
+          加入跟團清單
+        </Button>
       ) : (
-        <>
-          <Button fullWidth disabled>
-            目前不可跟團
-          </Button>
-          <p className="helper-text">
-            {UNAVAILABLE_REASON_LABELS[groupBuy.effective_status] ?? "目前不可跟團"}
-          </p>
-        </>
+        <Button className="gb-side-btn" fullWidth disabled>
+          目前不可跟團
+        </Button>
       )}
 
-      <p style={{ marginTop: "1rem" }}>
-        <Link to={`/products/${product.product.id}`}>返回商品頁</Link>
-      </p>
+      <Link className="btn btn-secondary btn-full gb-side-btn" to={`/products/${product.product.id}`}>
+        ← 返回商品頁
+      </Link>
 
       {conflict && (
         <ConfirmModal
@@ -216,6 +263,10 @@ export default function GroupBuyDetailPage() {
     groupBuy.products.find((item) => item.group_buy_product_id === featuredProductId) ??
     groupBuy.products[0];
 
+  const otherProducts = groupBuy.products.filter(
+    (item) => item.group_buy_product_id !== featuredProduct.group_buy_product_id,
+  );
+
   return (
     <>
       <Breadcrumb
@@ -223,95 +274,134 @@ export default function GroupBuyDetailPage() {
           { label: "首頁", to: "/" },
           { label: groupBuy.activity.name, to: `/activities/${groupBuy.activity.id}` },
           { label: featuredProduct.product.name, to: `/products/${featuredProduct.product.id}` },
-          { label: "開團詳情" },
+          { label: `${groupBuy.group_leader.display_name}開團詳情` },
         ]}
       />
 
-      <div className="checkout-layout">
+      <div className="gb-detail-layout">
         <div>
-          <h1>{featuredProduct.product.name}</h1>
-
           <Alert type={groupBuy.is_available ? "success" : "info"}>
-            {groupBuy.is_available ? "此開團目前仍可接受訂單。" : "此開團目前已停止接受新的訂單。"}
+            {groupBuy.is_available ? "此團仍可接受訂單" : "此開團目前已停止接受新的訂單。"}
           </Alert>
 
-          <dl className="detail-list">
-            <dt>活動</dt>
-            <dd>
-              <Link to={`/activities/${groupBuy.activity.id}`}>{groupBuy.activity.name}</Link>
-            </dd>
+          <div className="gb-panel gb-summary">
+            {featuredProduct.product.primary_image_url && (
+              <MediaImage
+                className="gb-summary-img"
+                src={featuredProduct.product.primary_image_url}
+                alt={featuredProduct.product.name}
+              />
+            )}
+            <div className="gb-summary-body">
+              <h1>{featuredProduct.product.name}</h1>
+              <span className="gb-badge">{groupBuy.activity.name}</span>
+            </div>
+          </div>
 
-            <dt>團主</dt>
-            <dd>
-              <Link to={`/group-leaders/${groupBuy.group_leader.id}`}>
-                {groupBuy.group_leader.display_name}
-              </Link>
-            </dd>
+          <div className="gb-panel">
+            <h2 className="section-title" style={{ marginBottom: 0 }}>
+              {groupBuy.group_leader.display_name}｜開團詳情
+            </h2>
 
-            <dt>狀態</dt>
-            <dd>
-              <StatusBadge domain="groupBuyEffective" value={groupBuy.effective_status} />
-            </dd>
+            <div className="gb-info-grid">
+              <InfoItem
+                icon={<UsersIcon />}
+                label="團主"
+                value={groupBuy.group_leader.display_name}
+              />
+              <InfoItem
+                icon={<TagIcon />}
+                label="團購價格"
+                value={`NT$ ${featuredProduct.unit_price}`}
+                valueClass="is-price"
+              />
+              <InfoItem
+                icon={<CreditCardIcon />}
+                label="付款方式"
+                value={`${PAYMENT_METHOD_LABELS[groupBuy.payment_method]}${
+                  groupBuy.payment_method_note ? `（${groupBuy.payment_method_note}）` : ""
+                }`}
+              />
+              <InfoItem
+                icon={<RefreshIcon />}
+                label="是否二補"
+                value={groupBuy.requires_second_payment ? "是" : "否"}
+              />
+              {groupBuy.activity.has_full_gift && (
+                <InfoItem
+                  icon={<GiftIcon />}
+                  label="是否含滿贈"
+                  value={groupBuy.includes_full_gift ? "是" : "否"}
+                />
+              )}
+              <InfoItem
+                icon={<CalendarIcon />}
+                label="收單期限"
+                value={formatDeadline(groupBuy.deadline_at)}
+              />
+              <InfoItem
+                icon={<BagIcon />}
+                label="商品剩餘數量"
+                value={featuredProduct.available_quantity}
+              />
+              <InfoItem
+                icon={<CheckCircleIcon />}
+                label="狀態"
+                value={groupBuy.is_available ? "可跟團" : "不可跟團"}
+                valueClass={groupBuy.is_available ? "is-ok" : "is-danger"}
+              />
+              <InfoItem
+                icon={<ChatIcon />}
+                label="主要聯絡方式"
+                value={`${CONTACT_PLATFORM_LABELS[groupBuy.contact_platform]}：${groupBuy.contact_value}`}
+              />
+            </div>
 
-            <dt>付款方式</dt>
-            <dd>
-              {PAYMENT_METHOD_LABELS[groupBuy.payment_method]}
-              {groupBuy.payment_method_note ? `（${groupBuy.payment_method_note}）` : ""}
-            </dd>
+            <div className="gb-rules">
+              <div className="gb-rules-head">
+                <ClipboardIcon />
+                完整團規
+              </div>
+              <p className="gb-rules-text">{groupBuy.rules}</p>
+            </div>
 
-            <dt>是否需要二補</dt>
-            <dd>{groupBuy.requires_second_payment ? "需要" : "不需要"}</dd>
+            <Link className="gb-leader-link" to={`/group-leaders/${groupBuy.group_leader.id}`}>
+              查看團主公開頁
+              <span aria-hidden="true">›</span>
+            </Link>
+          </div>
 
-            <dt>是否包含滿贈</dt>
-            <dd>{groupBuy.includes_full_gift ? "包含" : "不包含"}</dd>
+          {otherProducts.length > 0 && (
+            <div className="gb-panel">
+              <h2 className="section-title">此開團包含的其他商品</h2>
+              <ul style={{ margin: 0, paddingLeft: "1.2rem", lineHeight: 1.9 }}>
+                {otherProducts.map((item) => (
+                  <li key={item.group_buy_product_id}>
+                    <Link to={`/group-buys/${groupBuy.id}?product=${item.group_buy_product_id}`}>
+                      {item.product.name}
+                    </Link>{" "}
+                    — NT$ {item.unit_price}（剩餘 {item.available_quantity} 個）
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-            <dt>收單期限</dt>
-            <dd>{formatDeadline(groupBuy.deadline_at)}</dd>
-
-            <dt>主要聯絡方式</dt>
-            <dd>
-              {CONTACT_PLATFORM_LABELS[groupBuy.contact_platform]}：{groupBuy.contact_value}
-            </dd>
-          </dl>
+          {announcements.length > 0 && (
+            <div className="gb-panel">
+              <h2 className="section-title">開團公告</h2>
+              {announcements.map((announcement) => (
+                <div key={announcement.id} style={{ marginBottom: "1rem" }}>
+                  <h3 style={{ margin: "0 0 0.4rem" }}>{announcement.title}</h3>
+                  <p className="gb-rules-text">{announcement.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <AddToFollowListPanel product={featuredProduct} groupBuy={groupBuy} />
       </div>
-
-      {groupBuy.products.length > 1 && (
-        <section className="section">
-          <h2 className="section-title">此開團包含的其他商品</h2>
-          <ul>
-            {groupBuy.products
-              .filter((item) => item.group_buy_product_id !== featuredProduct.group_buy_product_id)
-              .map((item) => (
-                <li key={item.group_buy_product_id}>
-                  <Link to={`/group-buys/${groupBuy.id}?product=${item.group_buy_product_id}`}>
-                    {item.product.name}
-                  </Link>{" "}
-                  — NT$ {item.unit_price}（剩餘 {item.available_quantity} 個）
-                </li>
-              ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="section">
-        <h2 className="section-title">團規</h2>
-        <div className="rules-text">{groupBuy.rules}</div>
-      </section>
-
-      {announcements.length > 0 && (
-        <section className="section">
-          <h2 className="section-title">開團公告</h2>
-          {announcements.map((announcement) => (
-            <div key={announcement.id} className="group-buy-card">
-              <h3>{announcement.title}</h3>
-              <div className="rules-text">{announcement.content}</div>
-            </div>
-          ))}
-        </section>
-      )}
     </>
   );
 }
