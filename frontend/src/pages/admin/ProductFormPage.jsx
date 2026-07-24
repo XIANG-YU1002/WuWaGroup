@@ -12,7 +12,8 @@ import {
 } from "../../api/adminProducts.js";
 import { uploadImage } from "../../api/uploads.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { ApiError, resolveMediaUrl } from "../../api/client.js";
+import { ApiError } from "../../api/client.js";
+import MediaImage from "../../components/common/MediaImage.jsx";
 import Alert from "../../components/common/Alert.jsx";
 import Button from "../../components/common/Button.jsx";
 import ErrorState from "../../components/common/ErrorState.jsx";
@@ -32,6 +33,7 @@ export default function ProductFormPage() {
   const [activityId, setActivityId] = useState("");
   const [name, setName] = useState("");
   const [officialPrice, setOfficialPrice] = useState("");
+  const [officialCurrency, setOfficialCurrency] = useState("TWD");
   const [primaryImageUrl, setPrimaryImageUrl] = useState("");
   const [selectedCharacters, setSelectedCharacters] = useState([]);
   const [characterQuery, setCharacterQuery] = useState("");
@@ -58,6 +60,7 @@ export default function ProductFormPage() {
         setActivityId(data.activity.id);
         setName(data.name);
         setOfficialPrice(data.official_price ?? "");
+        setOfficialCurrency(data.official_currency ?? "TWD");
         setPrimaryImageUrl(data.primary_image_url);
         setSelectedCharacters(data.characters.map((c) => ({ id: c.id, name: c.name })));
         setExtraImages(data.images);
@@ -171,6 +174,7 @@ export default function ProductFormPage() {
       const payload = {
         name,
         official_price: officialPrice === "" ? null : officialPrice,
+        official_currency: officialPrice === "" ? null : officialCurrency,
         primary_image_url: primaryImageUrl,
         characters: buildCharacterPayload(),
       };
@@ -203,42 +207,61 @@ export default function ProductFormPage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <FormField label="活動選擇" htmlFor="product-activity" required>
-          <select
-            id="product-activity"
-            value={activityId}
-            disabled={isEdit}
-            onChange={(event) => setActivityId(event.target.value)}
-            required
-          >
-            <option value="">請選擇活動</option>
-            {activities.map((activity) => (
-              <option key={activity.id} value={activity.id}>
-                {activity.name}
-              </option>
-            ))}
-          </select>
-        </FormField>
+        <div className="form-two-col">
+          <FormField label="活動選擇" htmlFor="product-activity" required>
+            <select
+              id="product-activity"
+              value={activityId}
+              disabled={isEdit}
+              onChange={(event) => setActivityId(event.target.value)}
+              required
+            >
+              <option value="">請選擇活動</option>
+              {activities.map((activity) => (
+                <option key={activity.id} value={activity.id}>
+                  {activity.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
 
-        <FormField label="商品名稱" htmlFor="product-name" required>
-          <input id="product-name" value={name} onChange={(event) => setName(event.target.value)} required />
-        </FormField>
+          <FormField label="商品名稱" htmlFor="product-name" required>
+            <input id="product-name" value={name} onChange={(event) => setName(event.target.value)} required />
+          </FormField>
+        </div>
 
-        <FormField label="官方價格（TWD，選填）" htmlFor="product-price">
-          <input
-            id="product-price"
-            type="number"
-            min="0"
-            step="0.01"
-            value={officialPrice}
-            onChange={(event) => setOfficialPrice(event.target.value)}
-          />
+        <FormField label="官方價格（選填）" htmlFor="product-price">
+          <div className="price-currency-row">
+            <input
+              id="product-price"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="請輸入金額"
+              value={officialPrice}
+              onChange={(event) => setOfficialPrice(event.target.value)}
+            />
+            <select
+              className="price-currency-select"
+              value={officialCurrency}
+              onChange={(event) => setOfficialCurrency(event.target.value)}
+              disabled={officialPrice === ""}
+              aria-label="幣別"
+            >
+              <option value="TWD">TWD 新台幣</option>
+              <option value="CNY">CNY 人民幣</option>
+              <option value="JPY">JPY 日圓</option>
+              <option value="KRW">KRW 韓元</option>
+              <option value="USD">USD 美金</option>
+            </select>
+          </div>
+          <p className="helper-text">選填官方定價；填入金額後可選擇幣別。</p>
         </FormField>
 
         <FormField label="主圖" htmlFor="product-primary-image" required>
           {primaryImageUrl && (
-            <img
-              src={resolveMediaUrl(primaryImageUrl)}
+            <MediaImage
+              src={primaryImageUrl}
               alt=""
               style={{ width: "8rem", height: "8rem", objectFit: "cover", borderRadius: "var(--radius)", marginBottom: "0.5rem" }}
             />
@@ -260,8 +283,8 @@ export default function ProductFormPage() {
             <div className="group-buy-card-row">
               {extraImages.map((image, index) => (
                 <div key={image.id} style={{ position: "relative" }}>
-                  <img
-                    src={resolveMediaUrl(image.image_url)}
+                  <MediaImage
+                    src={image.image_url}
                     alt=""
                     style={{ width: "5rem", height: "5rem", objectFit: "cover", borderRadius: "var(--radius)" }}
                   />

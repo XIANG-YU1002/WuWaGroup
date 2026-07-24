@@ -55,7 +55,18 @@ def get_activities(
     activities, total = activity_repository.list_activities_admin(
         db, status=status, keyword=keyword, page=page, page_size=page_size
     )
-    items = [ActivityAdminListItem.model_validate(a, from_attributes=True) for a in activities]
+    items = [
+        ActivityAdminListItem(
+            id=a.id,
+            name=a.name,
+            image_url=a.image_url,
+            status=a.status,
+            has_full_gift=a.has_full_gift,
+            product_count=activity_repository.count_products_for_activity(db, a.id),
+            created_at=a.created_at,
+        )
+        for a in activities
+    ]
     return items, total
 
 

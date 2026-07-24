@@ -60,6 +60,7 @@ class ActivityAdminListItem(BaseModel):
     image_url: str
     status: ActivityStatus
     has_full_gift: bool
+    product_count: int
     created_at: UTCDateTime
 
 

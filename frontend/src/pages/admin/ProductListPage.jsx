@@ -2,23 +2,25 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getActivities } from "../../api/activities.js";
 import { deactivateAdminProduct, getAdminProducts, reactivateAdminProduct } from "../../api/adminProducts.js";
-import { resolveMediaUrl } from "../../api/client.js";
+import MediaImage from "../../components/common/MediaImage.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import Button from "../../components/common/Button.jsx";
 import EmptyState from "../../components/common/EmptyState.jsx";
 import ErrorState from "../../components/common/ErrorState.jsx";
 import PageLoader from "../../components/common/PageLoader.jsx";
-import Pagination from "../../components/common/Pagination.jsx";
+import ListFooter from "../../components/common/ListFooter.jsx";
+import { SearchIcon } from "../../components/common/icons.jsx";
 
 export default function ProductListPage() {
   const { token } = useAuth();
   const [searchParams] = useSearchParams();
   const [activities, setActivities] = useState([]);
-  const [activityId, setActivityId] = useState("");
+  const [activityId, setActivityId] = useState(searchParams.get("activity_id") ?? "");
   const [isActive, setIsActive] = useState(searchParams.get("is_active") ?? "");
   const [keyword, setKeyword] = useState("");
   const [keywordInput, setKeywordInput] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const [products, setProducts] = useState(null);
   const [pagination, setPagination] = useState(null);
   const [error, setError] = useState(false);
@@ -36,6 +38,7 @@ export default function ProductListPage() {
       isActive: isActive === "" ? undefined : isActive === "true",
       keyword: keyword || undefined,
       page,
+      pageSize,
     })
       .then((response) => {
         setProducts(response.data);
@@ -47,7 +50,7 @@ export default function ProductListPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activityId, isActive, keyword, page]);
+  }, [activityId, isActive, keyword, page, pageSize]);
 
   function handleSearchSubmit(event) {
     event.preventDefault();
@@ -69,40 +72,80 @@ export default function ProductListPage() {
     }
   }
 
+  const activeActivity = activities.find((a) => a.id === activityId);
+
   return (
-    <>
-      <div className="group-buy-card-row">
+    <div className="admin-page">
+      <div className="page-header">
         <h1>商品管理</h1>
-        <Link className="btn btn-primary" to="/admin/products/new">
-          + 新增商品
-        </Link>
       </div>
 
-      <div className="group-buy-card-row" style={{ margin: "1rem 0" }}>
-        <form className="search-input" style={{ maxWidth: "320px" }} onSubmit={handleSearchSubmit}>
+      {activityId && (
+        <div className="filter-banner">
+          <span>
+            目前僅顯示活動「<strong>{activeActivity?.name ?? "指定活動"}</strong>」的商品
+          </span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              setActivityId("");
+              setPage(1);
+            }}
+          >
+            顯示全部商品
+          </button>
+        </div>
+      )}
+
+      <div className="admin-toolbar">
+        <form className="search-input admin-toolbar-search" onSubmit={handleSearchSubmit} role="search">
           <input
             type="search"
             placeholder="搜尋商品名稱"
             value={keywordInput}
             onChange={(event) => setKeywordInput(event.target.value)}
+            aria-label="搜尋商品名稱"
           />
-          <button type="submit">搜尋</button>
+          <button type="submit" className="search-input-icon-btn" aria-label="搜尋">
+            <SearchIcon className="icon-search" />
+          </button>
         </form>
-        <select value={activityId} onChange={(event) => { setActivityId(event.target.value); setPage(1); }}>
-          <option value="">選擇活動</option>
+        <select
+          className="admin-toolbar-select"
+          value={activityId}
+          onChange={(event) => {
+            setActivityId(event.target.value);
+            setPage(1);
+          }}
+          aria-label="選擇活動"
+        >
+          <option value="">全部活動</option>
           {activities.map((activity) => (
             <option key={activity.id} value={activity.id}>
               {activity.name}
             </option>
           ))}
         </select>
-        <select value={isActive} onChange={(event) => { setIsActive(event.target.value); setPage(1); }}>
+        <select
+          className="admin-toolbar-select"
+          value={isActive}
+          onChange={(event) => {
+            setIsActive(event.target.value);
+            setPage(1);
+          }}
+          aria-label="狀態篩選"
+        >
           <option value="">全部狀態</option>
           <option value="true">已上架</option>
           <option value="false">已下架</option>
         </select>
+        <Link className="btn btn-primary admin-toolbar-action" to="/admin/products/new">
+          + 新增商品
+        </Link>
       </div>
 
+      <div className="admin-panel">
       {error ? (
         <ErrorState onRetry={load} />
       ) : products === null ? (
@@ -119,6 +162,8 @@ export default function ProductListPage() {
                   <th>商品名稱</th>
                   <th>所屬活動</th>
                   <th>官方價格</th>
+                  <th>幣別</th>
+                  <th>關聯角色</th>
                   <th>狀態</th>
                   <th>操作</th>
                 </tr>
@@ -127,22 +172,41 @@ export default function ProductListPage() {
                 {products.map((product) => (
                   <tr key={product.id}>
                     <td>
-                      <img
-                        src={resolveMediaUrl(product.primary_image_url)}
+                      <MediaImage
+                        src={product.primary_image_url}
                         alt=""
-                        style={{ width: "3rem", height: "3rem", objectFit: "cover", borderRadius: "var(--radius)" }}
+                        style={{ width: "4rem", height: "4rem", objectFit: "cover", borderRadius: "var(--radius)" }}
                       />
                     </td>
                     <td>{product.name}</td>
                     <td>{product.activity.name}</td>
                     <td>{product.official_price ?? "—"}</td>
+                    <td>{product.official_currency ?? "—"}</td>
+                    <td>
+                      {product.characters && product.characters.length > 0 ? (
+                        <span className="char-tags">
+                          {product.characters.slice(0, 3).map((c) => (
+                            <span key={c.id} className="char-tag">
+                              {c.name}
+                            </span>
+                          ))}
+                          {product.characters.length > 3 && (
+                            <span className="char-tag char-tag-more">
+                              +{product.characters.length - 3}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td>
                       <span className={`status-badge ${product.is_active ? "status-badge-success" : "status-badge-neutral"}`}>
                         {product.is_active ? "已上架" : "已下架"}
                       </span>
                     </td>
                     <td>
-                      <div className="group-buy-card-row" style={{ flexWrap: "nowrap" }}>
+                      <div className="row-actions">
                         <Link className="btn btn-secondary" to={`/admin/products/${product.id}`}>
                           編輯
                         </Link>
@@ -163,9 +227,18 @@ export default function ProductListPage() {
               </tbody>
             </table>
           </div>
-          <Pagination page={pagination.page} totalPages={pagination.total_pages} onPageChange={setPage} />
+          <ListFooter
+            pagination={pagination}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
+          />
         </>
       )}
-    </>
+      </div>
+    </div>
   );
 }

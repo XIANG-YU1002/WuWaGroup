@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { endAdminActivity, getAdminActivities, reopenAdminActivity } from "../../api/adminActivities.js";
-import { resolveMediaUrl } from "../../api/client.js";
+import MediaImage from "../../components/common/MediaImage.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import Button from "../../components/common/Button.jsx";
 import ConfirmModal from "../../components/common/ConfirmModal.jsx";
 import EmptyState from "../../components/common/EmptyState.jsx";
 import ErrorState from "../../components/common/ErrorState.jsx";
 import PageLoader from "../../components/common/PageLoader.jsx";
-import Pagination from "../../components/common/Pagination.jsx";
+import ListFooter from "../../components/common/ListFooter.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
+import { SearchIcon } from "../../components/common/icons.jsx";
 
 function formatDateTime(isoString) {
   return new Date(isoString).toLocaleString("zh-TW", {
@@ -26,6 +27,7 @@ export default function ActivityListPage() {
   const [keyword, setKeyword] = useState("");
   const [keywordInput, setKeywordInput] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
   const [activities, setActivities] = useState(null);
   const [pagination, setPagination] = useState(null);
   const [error, setError] = useState(false);
@@ -35,7 +37,7 @@ export default function ActivityListPage() {
   function load() {
     setError(false);
     setActivities(null);
-    getAdminActivities(token, { status: status || undefined, keyword: keyword || undefined, page })
+    getAdminActivities(token, { status: status || undefined, keyword: keyword || undefined, page, pageSize })
       .then((response) => {
         setActivities(response.data);
         setPagination(response.pagination);
@@ -46,7 +48,7 @@ export default function ActivityListPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, keyword, page]);
+  }, [status, keyword, page, pageSize]);
 
   function handleSearchSubmit(event) {
     event.preventDefault();
@@ -76,37 +78,43 @@ export default function ActivityListPage() {
   }
 
   return (
-    <>
-      <div className="group-buy-card-row">
+    <div className="admin-page">
+      <div className="page-header">
         <h1>活動管理</h1>
-        <Link className="btn btn-primary" to="/admin/activities/new">
-          + 新增活動
-        </Link>
       </div>
 
-      <div className="group-buy-card-row" style={{ margin: "1rem 0" }}>
-        <form className="search-input" style={{ maxWidth: "320px" }} onSubmit={handleSearchSubmit}>
+      <div className="admin-toolbar">
+        <form className="search-input admin-toolbar-search" onSubmit={handleSearchSubmit} role="search">
           <input
             type="search"
             placeholder="搜尋活動名稱"
             value={keywordInput}
             onChange={(event) => setKeywordInput(event.target.value)}
+            aria-label="搜尋活動名稱"
           />
-          <button type="submit">搜尋</button>
+          <button type="submit" className="search-input-icon-btn" aria-label="搜尋">
+            <SearchIcon className="icon-search" />
+          </button>
         </form>
         <select
+          className="admin-toolbar-select"
           value={status}
           onChange={(event) => {
             setStatus(event.target.value);
             setPage(1);
           }}
+          aria-label="狀態篩選"
         >
           <option value="">全部狀態</option>
           <option value="open">進行中</option>
           <option value="ended">已結束</option>
         </select>
+        <Link className="btn btn-primary admin-toolbar-action" to="/admin/activities/new">
+          + 新增活動
+        </Link>
       </div>
 
+      <div className="admin-panel">
       {error ? (
         <ErrorState onRetry={load} />
       ) : activities === null ? (
@@ -121,6 +129,7 @@ export default function ActivityListPage() {
                 <tr>
                   <th>活動封面</th>
                   <th>活動名稱</th>
+                  <th>商品數量</th>
                   <th>狀態</th>
                   <th>建立時間</th>
                   <th>操作</th>
@@ -130,23 +139,24 @@ export default function ActivityListPage() {
                 {activities.map((activity) => (
                   <tr key={activity.id}>
                     <td>
-                      <img
-                        src={resolveMediaUrl(activity.image_url)}
+                      <MediaImage
+                        src={activity.image_url}
                         alt=""
-                        style={{ width: "3.5rem", height: "2rem", objectFit: "cover", borderRadius: "var(--radius)" }}
+                        style={{ width: "5rem", height: "3rem", objectFit: "cover", borderRadius: "var(--radius)" }}
                       />
                     </td>
                     <td>{activity.name}</td>
+                    <td>{activity.product_count ?? 0}</td>
                     <td>
                       <StatusBadge domain="activity" value={activity.status} />
                     </td>
                     <td>{formatDateTime(activity.created_at)}</td>
                     <td>
-                      <div className="group-buy-card-row" style={{ flexWrap: "nowrap" }}>
+                      <div className="row-actions">
                         <Link className="btn btn-secondary" to={`/admin/activities/${activity.id}`}>
                           編輯
                         </Link>
-                        <Link className="btn btn-secondary" to={`/activities/${activity.id}`}>
+                        <Link className="btn btn-secondary" to={`/admin/products?activity_id=${activity.id}`}>
                           查看商品
                         </Link>
                         {activity.status === "open" ? (
@@ -165,9 +175,18 @@ export default function ActivityListPage() {
               </tbody>
             </table>
           </div>
-          <Pagination page={pagination.page} totalPages={pagination.total_pages} onPageChange={setPage} />
+          <ListFooter
+            pagination={pagination}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
+          />
         </>
       )}
+      </div>
 
       {endTarget && (
         <ConfirmModal
@@ -180,6 +199,6 @@ export default function ActivityListPage() {
           onConfirm={handleEnd}
         />
       )}
-    </>
+    </div>
   );
 }

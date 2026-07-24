@@ -53,6 +53,7 @@ def _to_detail(db: Session, product: Product) -> ProductAdminDetailResponse:
         id=product.id,
         name=product.name,
         official_price=product.official_price,
+        official_currency=product.official_currency,
         primary_image_url=product.primary_image_url,
         is_active=product.is_active,
         activity=ProductAdminActivityRef.model_validate(activity, from_attributes=True),
@@ -75,7 +76,9 @@ def create_product(db: Session, payload: CreateProductRequest) -> ProductAdminDe
     if product_repository.name_exists_in_activity(db, activity.id, payload.name):
         raise AppError(409, "CONFLICT", "此活動內已有相同名稱的商品。")
 
-    official_currency = Currency.TWD if payload.official_price is not None else None
+    official_currency = (
+        (payload.official_currency or Currency.TWD) if payload.official_price is not None else None
+    )
 
     product = product_repository.create_product(
         db,
@@ -125,6 +128,11 @@ def get_products(
                 is_active=product.is_active,
                 activity=ProductAdminActivityRef.model_validate(activity, from_attributes=True),
                 official_price=product.official_price,
+                official_currency=product.official_currency,
+                characters=[
+                    ProductAdminCharacterItem.model_validate(c, from_attributes=True)
+                    for c in product_repository.get_characters(db, product.id)
+                ],
                 created_at=product.created_at,
             )
         )
@@ -151,7 +159,11 @@ def update_product(
 
     if "official_price" in provided:
         product.official_price = payload.official_price
-        product.official_currency = Currency.TWD if payload.official_price is not None else None
+        product.official_currency = (
+            (payload.official_currency or Currency.TWD)
+            if payload.official_price is not None
+            else None
+        )
 
     if "primary_image_url" in provided:
         product.primary_image_url = payload.primary_image_url

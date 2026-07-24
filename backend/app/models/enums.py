@@ -73,3 +73,5 @@ class Currency(str, enum.Enum):
     TWD = "TWD"
     CNY = "CNY"
     JPY = "JPY"
+    KRW = "KRW"
+    USD = "USD"

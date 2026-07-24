@@ -4,7 +4,8 @@ import { getActivities, getActivityProducts } from "../../api/activities.js";
 import { createGroupBuy } from "../../api/groupLeaderGroupBuys.js";
 import { getMyGroupLeaderProfile } from "../../api/groupLeaderProfile.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { ApiError, resolveMediaUrl } from "../../api/client.js";
+import { ApiError } from "../../api/client.js";
+import MediaImage from "../../components/common/MediaImage.jsx";
 import Alert from "../../components/common/Alert.jsx";
 import Button from "../../components/common/Button.jsx";
 import FormField from "../../components/common/FormField.jsx";
@@ -164,8 +165,8 @@ export default function GroupBuyCreatePage() {
                         checked={Boolean(selected)}
                         onChange={() => toggleProduct(product)}
                       />
-                      <img
-                        src={resolveMediaUrl(product.primary_image_url)}
+                      <MediaImage
+                        src={product.primary_image_url}
                         alt=""
                         style={{ width: "3rem", height: "3rem", objectFit: "cover", borderRadius: "var(--radius)" }}
                       />

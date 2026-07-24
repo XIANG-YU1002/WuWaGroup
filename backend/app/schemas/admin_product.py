@@ -2,6 +2,7 @@ import uuid
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.models.enums import Currency
 from app.schemas.common import Money, UTCDateTime
 
 
@@ -28,6 +29,7 @@ class CreateProductRequest(BaseModel):
     activity_id: uuid.UUID
     name: str
     official_price: Money | None = Field(default=None, ge=0)
+    official_currency: Currency | None = None
     primary_image_url: str
     characters: list[CharacterSelection] = []
 
@@ -43,6 +45,7 @@ class CreateProductRequest(BaseModel):
 class UpdateProductRequest(BaseModel):
     name: str | None = None
     official_price: Money | None = Field(default=None, ge=0)
+    official_currency: Currency | None = None
     primary_image_url: str | None = None
     characters: list[CharacterSelection] | None = None
 
@@ -80,6 +83,8 @@ class ProductAdminListItem(BaseModel):
     is_active: bool
     activity: ProductAdminActivityRef
     official_price: Money | None
+    official_currency: Currency | None
+    characters: list[ProductAdminCharacterItem]
     created_at: UTCDateTime
 
 
@@ -87,6 +92,7 @@ class ProductAdminDetailResponse(BaseModel):
     id: uuid.UUID
     name: str
     official_price: Money | None
+    official_currency: Currency | None
     primary_image_url: str
     is_active: bool
     activity: ProductAdminActivityRef

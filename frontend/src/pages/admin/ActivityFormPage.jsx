@@ -7,7 +7,8 @@ import {
 } from "../../api/adminActivities.js";
 import { uploadImage } from "../../api/uploads.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { ApiError, resolveMediaUrl } from "../../api/client.js";
+import { ApiError } from "../../api/client.js";
+import MediaImage from "../../components/common/MediaImage.jsx";
 import Alert from "../../components/common/Alert.jsx";
 import Button from "../../components/common/Button.jsx";
 import ErrorState from "../../components/common/ErrorState.jsx";
@@ -121,8 +122,8 @@ export default function ActivityFormPage() {
 
         <FormField label="活動封面圖片" htmlFor="activity-image" required>
           {imageUrl && (
-            <img
-              src={resolveMediaUrl(imageUrl)}
+            <MediaImage
+              src={imageUrl}
               alt=""
               style={{ width: "100%", maxWidth: "320px", aspectRatio: "16/9", objectFit: "cover", borderRadius: "var(--radius)", marginBottom: "0.5rem" }}
             />

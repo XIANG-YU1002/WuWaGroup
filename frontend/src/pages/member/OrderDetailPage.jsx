@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getMyOrderDetail } from "../../api/orders.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { ApiError, resolveMediaUrl } from "../../api/client.js";
+import { ApiError } from "../../api/client.js";
+import MediaImage from "../../components/common/MediaImage.jsx";
 import ErrorState from "../../components/common/ErrorState.jsx";
 import PageLoader from "../../components/common/PageLoader.jsx";
 import StatusBadge from "../../components/common/StatusBadge.jsx";
@@ -128,8 +129,8 @@ export default function OrderDetailPage() {
                 <tr key={item.id}>
                   <td>
                     <div className="group-buy-card-row">
-                      <img
-                        src={resolveMediaUrl(item.image_url_snapshot)}
+                      <MediaImage
+                        src={item.image_url_snapshot}
                         alt={item.product_name_snapshot}
                         style={{ width: "3rem", height: "3rem", objectFit: "cover", borderRadius: "var(--radius)" }}
                       />

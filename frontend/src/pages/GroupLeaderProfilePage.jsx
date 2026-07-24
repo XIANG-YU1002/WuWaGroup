@@ -7,6 +7,7 @@ import {
 } from "../api/groupLeaders.js";
 import { getGroupBuyDetail } from "../api/groupBuys.js";
 import { ApiError, resolveMediaUrl } from "../api/client.js";
+import MediaImage from "../components/common/MediaImage.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
 import PageLoader from "../components/common/PageLoader.jsx";
@@ -144,9 +145,9 @@ export default function GroupLeaderProfilePage() {
           <div className="grid">
             {productCards.map((card) => (
               <div key={card.groupBuyProductId} className="card">
-                <img
+                <MediaImage
                   className="card-image card-image-square"
-                  src={resolveMediaUrl(card.product.primary_image_url)}
+                  src={card.product.primary_image_url}
                   alt={card.product.name}
                   loading="lazy"
                 />

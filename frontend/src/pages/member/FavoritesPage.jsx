@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getFavoriteProducts, removeFavorite } from "../../api/favorites.js";
-import { resolveMediaUrl } from "../../api/client.js";
+import MediaImage from "../../components/common/MediaImage.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import EmptyState from "../../components/common/EmptyState.jsx";
 import ErrorState from "../../components/common/ErrorState.jsx";
@@ -61,9 +61,9 @@ export default function FavoritesPage() {
           <div className="grid">
             {items.map((item) => (
               <div key={item.favorite_id} className="card">
-                <img
+                <MediaImage
                   className="card-image card-image-square"
-                  src={resolveMediaUrl(item.product.primary_image_url)}
+                  src={item.product.primary_image_url}
                   alt={item.product.name}
                   loading="lazy"
                 />

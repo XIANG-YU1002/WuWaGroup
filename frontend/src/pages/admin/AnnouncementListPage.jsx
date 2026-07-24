@@ -13,7 +13,12 @@ import ConfirmModal from "../../components/common/ConfirmModal.jsx";
 import EmptyState from "../../components/common/EmptyState.jsx";
 import ErrorState from "../../components/common/ErrorState.jsx";
 import PageLoader from "../../components/common/PageLoader.jsx";
-import Pagination from "../../components/common/Pagination.jsx";
+import ListFooter from "../../components/common/ListFooter.jsx";
+import { MegaphoneIcon, SearchIcon } from "../../components/common/icons.jsx";
+
+const TITLE_MAX = 80;
+const CONTENT_MAX = 2000;
+const EMPTY_FORM = { title: "", content: "" };
 
 function formatDateTime(isoString) {
   return new Date(isoString).toLocaleString("zh-TW", {
@@ -23,11 +28,12 @@ function formatDateTime(isoString) {
   });
 }
 
-const EMPTY_FORM = { title: "", content: "" };
-
 export default function AnnouncementListPage() {
   const { token } = useAuth();
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const [keyword, setKeyword] = useState("");
+  const [keywordInput, setKeywordInput] = useState("");
   const [announcements, setAnnouncements] = useState(null);
   const [pagination, setPagination] = useState(null);
   const [error, setError] = useState(false);
@@ -43,7 +49,7 @@ export default function AnnouncementListPage() {
   function load() {
     setError(false);
     setAnnouncements(null);
-    getAdminAnnouncements(token, { page })
+    getAdminAnnouncements(token, { keyword: keyword || undefined, page, pageSize })
       .then((response) => {
         setAnnouncements(response.data);
         setPagination(response.pagination);
@@ -54,7 +60,13 @@ export default function AnnouncementListPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [keyword, page, pageSize]);
+
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+    setPage(1);
+    setKeyword(keywordInput.trim());
+  }
 
   function openCreateForm() {
     setEditingId(null);
@@ -100,18 +112,36 @@ export default function AnnouncementListPage() {
     }
   }
 
+  const total = pagination?.total_items ?? 0;
+
   return (
-    <>
-      <div className="group-buy-card-row">
-        <div>
-          <h1>平台公告管理</h1>
-          <p className="helper-text">管理平台公告內容，系統將依全部會員發送站內通知。</p>
-        </div>
-        <Button onClick={openCreateForm}>+ 新增公告</Button>
+    <div className="admin-page">
+      <div className="page-header page-header--tight">
+        <h1>平台公告管理</h1>
       </div>
 
-      <div className="two-col-section">
-        <div>
+      <div className={`announce-layout${showForm ? " with-form" : ""}`}>
+        <div className="announce-main">
+          <p className="helper-text announce-subtitle">管理平台公告內容，系統將對全部會員發送站內通知。</p>
+          <div className="announce-toolbar">
+            <Button onClick={openCreateForm}>+ 新增公告</Button>
+            <span className="announce-count">
+              公告列表　共 {total} 則公告
+            </span>
+            <form className="search-input admin-toolbar-search announce-search" onSubmit={handleSearchSubmit} role="search">
+              <input
+                type="search"
+                placeholder="搜尋公告標題"
+                value={keywordInput}
+                onChange={(event) => setKeywordInput(event.target.value)}
+                aria-label="搜尋公告標題"
+              />
+              <button type="submit" className="search-input-icon-btn" aria-label="搜尋">
+                <SearchIcon className="icon-search" />
+              </button>
+            </form>
+          </div>
+
           {error ? (
             <ErrorState onRetry={load} />
           ) : announcements === null ? (
@@ -120,38 +150,53 @@ export default function AnnouncementListPage() {
             <EmptyState title="尚未發布任何平台公告。" />
           ) : (
             <>
-              {announcements.map((announcement) => (
-                <div key={announcement.id} className="group-buy-card">
-                  <div className="group-buy-card-row">
-                    <h3 style={{ margin: 0 }}>{announcement.title}</h3>
-                    <span className="helper-text" style={{ marginLeft: "auto" }}>
-                      {formatDateTime(announcement.published_at)}
+              <div className="announce-list">
+                {announcements.map((announcement) => (
+                  <article key={announcement.id} className="announce-card">
+                    <span className="dash-icon purple announce-card-icon">
+                      <MegaphoneIcon className="dash-icon-svg" />
                     </span>
-                  </div>
-                  <p>{announcement.content}</p>
-                  <p className="helper-text">通知對象人數：{announcement.recipient_count}</p>
-                  <div className="group-buy-card-row">
-                    <Button variant="secondary" onClick={() => openEditForm(announcement)}>
-                      編輯
-                    </Button>
-                    <Button variant="danger" onClick={() => setDeleteTarget(announcement.id)}>
-                      刪除
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              <Pagination page={pagination.page} totalPages={pagination.total_pages} onPageChange={setPage} />
+                    <div className="announce-card-body">
+                      <h3 className="announce-card-title">{announcement.title}</h3>
+                      <p className="announce-card-content">{announcement.content}</p>
+                      <div className="announce-card-meta">
+                        <span className="announce-target">對象：全部會員</span>
+                        <span>更新時間：{formatDateTime(announcement.updated_at)}</span>
+                        <span>通知人數：{announcement.recipient_count}</span>
+                      </div>
+                    </div>
+                    <div className="announce-card-actions">
+                      <Button variant="secondary" onClick={() => openEditForm(announcement)}>
+                        編輯
+                      </Button>
+                      <Button variant="danger" onClick={() => setDeleteTarget(announcement.id)}>
+                        刪除
+                      </Button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <ListFooter
+                pagination={pagination}
+                onPageChange={setPage}
+                pageSize={pageSize}
+                onPageSizeChange={(n) => {
+                  setPageSize(n);
+                  setPage(1);
+                }}
+              />
             </>
           )}
         </div>
 
         {showForm && (
-          <div className="group-buy-card">
-            <div className="group-buy-card-row">
-              <h2 className="section-title" style={{ marginBottom: 0 }}>
-                {editingId ? "編輯公告" : "新增公告"}
-              </h2>
-              <button type="button" className="btn btn-ghost" onClick={() => setShowForm(false)}>
+          <aside className="announce-form-panel">
+            <div className="announce-form-head">
+              <span className="dash-icon purple">
+                <MegaphoneIcon className="dash-icon-svg" />
+              </span>
+              <h2>{editingId ? "編輯公告" : "新增公告"}</h2>
+              <button type="button" className="btn btn-ghost announce-form-close" onClick={() => setShowForm(false)} aria-label="關閉">
                 ✕
               </button>
             </div>
@@ -159,36 +204,53 @@ export default function AnnouncementListPage() {
               <div className="form-field">
                 <label>公告標題</label>
                 <input
-                  maxLength={80}
+                  maxLength={TITLE_MAX}
+                  placeholder={`請輸入公告標題（最多 ${TITLE_MAX} 字）`}
                   value={form.title}
                   onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
                   required
                 />
+                <div className="char-count">
+                  {form.title.length} / {TITLE_MAX}
+                </div>
               </div>
               <div className="form-field">
                 <label>公告內容</label>
                 <textarea
                   rows={8}
-                  maxLength={2000}
+                  maxLength={CONTENT_MAX}
+                  placeholder="請輸入公告內容…"
                   value={form.content}
                   onChange={(event) => setForm((prev) => ({ ...prev, content: event.target.value }))}
                   required
                 />
+                <div className="char-count">
+                  {form.content.length} / {CONTENT_MAX}
+                </div>
               </div>
-              <p className="helper-text">通知對象：全部已註冊會員。</p>
+              <div className="form-field">
+                <label>通知對象</label>
+                <select value="all" disabled aria-label="通知對象">
+                  <option value="all">全部會員</option>
+                </select>
+              </div>
+
+              <div className="announce-form-note">
+                編輯公告將更新通知內容，系統會重新發送通知給全部會員；刪除公告將移除公告內容並停發相關通知。
+              </div>
 
               {submitError && <Alert type="error">{submitError}</Alert>}
 
-              <div className="group-buy-card-row">
+              <div className="announce-form-actions">
                 <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
                   取消
                 </Button>
                 <Button type="submit" loading={submitting}>
-                  {editingId ? "儲存變更" : "發布公告"}
+                  儲存公告
                 </Button>
               </div>
             </form>
-          </div>
+          </aside>
         )}
       </div>
 
@@ -203,6 +265,6 @@ export default function AnnouncementListPage() {
           onConfirm={handleDelete}
         />
       )}
-    </>
+    </div>
   );
 }

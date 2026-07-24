@@ -5,11 +5,16 @@ import Button from "../common/Button.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function FavoriteButton({ productId, initialFavorited }) {
-  const { isAuthenticated, token } = useAuth();
+  const { isAuthenticated, token, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isFavorited, setIsFavorited] = useState(initialFavorited);
   const [submitting, setSubmitting] = useState(false);
+
+  // 管理員全程在後台作業，前台僅供瀏覽；不提供收藏操作，避免產生無用資料。
+  if (user?.permissions?.is_admin) {
+    return null;
+  }
 
   async function handleClick() {
     if (!isAuthenticated) {

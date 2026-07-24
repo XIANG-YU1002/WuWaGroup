@@ -10,6 +10,10 @@ class ApplicationUserRef(BaseModel):
     id: uuid.UUID
     email: str
     nickname: str
+    avatar_url: str | None = None
+    facebook_contact: str | None = None
+    discord_contact: str | None = None
+    line_contact: str | None = None
 
 
 class ApplicationAdminListItem(BaseModel):
